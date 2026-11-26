@@ -1,0 +1,6 @@
+# Plugins installed at user scope on every machine and cloud VM, for plugins that are
+# not enabled on your claude.ai account. Plugins tied to one project (outerpale-devops,
+# for example) belong in that repository's .claude/settings.json instead.
+# Format: plugin@marketplace  marketplace-source (owner/repo or git URL)
+#
+# (none yet)

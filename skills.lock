@@ -1,0 +1,6 @@
+# Skills installed into ~/.claude/skills/<name> on every machine and cloud VM.
+# Each skill is pinned to a commit. To upgrade one, change its commit and run tests/test.sh.
+# Only list skills that are not already enabled on your claude.ai account.
+# Format: name  repository  commit  path-inside-repository ("." for the repository root)
+#
+# (none yet)
