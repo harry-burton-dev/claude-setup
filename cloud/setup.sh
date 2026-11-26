@@ -12,6 +12,12 @@ SETUP_REPO="https://github.com/harry-burton-dev/claude-setup.git"   # public, ho
 SETUP_REF="main"
 NODE_MAJOR="26"
 
+# Plugins for this environment only, on top of plugins.lock (which every machine gets).
+# Plugins are never committed to project repositories: a project's environment lists its own here.
+# One per line: plugin@marketplace  marketplace-source (owner/repo or git URL)
+ENV_PLUGINS="
+"
+
 warnings=()
 warn() { warnings+=("$*"); printf 'setup: WARNING %s\n' "$*"; }
 log()  { printf 'setup: %s\n' "$*"; }
@@ -46,7 +52,11 @@ if [ -z "${SETUP_SRC:-}" ]; then
   rm -rf "$src"
   git clone -q --depth 1 --branch "$SETUP_REF" "$SETUP_REPO" "$src"
 fi
-"$src/install.sh"
+plugins_lock="$(mktemp)"
+cat "$src/plugins.lock" > "$plugins_lock"
+printf '%s\n' "$ENV_PLUGINS" >> "$plugins_lock"
+PLUGINS_LOCK="$plugins_lock" bash "$src/install.sh"
+rm -f "$plugins_lock"
 commit="$(git -C "$src" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
 # 4. A status file, so a session can check what this VM was given.

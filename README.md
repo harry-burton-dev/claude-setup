@@ -6,7 +6,7 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 |---|---|
 | `CLAUDE.md` | The user instructions. Installed as `~/.claude/CLAUDE.md` |
 | `skills.lock` | Skills to install, each pinned to a commit. Empty for now |
-| `plugins.lock` | Plugins to install at user scope. Empty for now |
+| `plugins.lock` | Plugins every machine gets, at user scope. Empty for now. A plugin for one project goes in `ENV_PLUGINS` in that environment's copy of `cloud/setup.sh`, never in the project repository |
 | `agents/`, `commands/` | Copied into `~/.claude/` if present. None yet |
 | `install.sh` | Installs all of the above into `~/.claude`. Safe to run again |
 | `cloud/setup.sh` | The script to paste into a claude.ai cloud environment |
@@ -22,7 +22,7 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 ## What goes where
 
 - **Here:** only what every project and every machine should have.
-- **In a project repository:** anything about one project. That means its `CLAUDE.md`, its `.claude/settings.json` (hooks, permissions, project plugins), its `.claude/skills/`, and how to run and test it. Cloud sessions load those straight from the repository.
+- **In a project repository:** anything about one project. That means its `CLAUDE.md`, its `.claude/settings.json` (hooks and permissions, never plugins), its `.claude/skills/`, and how to run and test it. Cloud sessions load those straight from the repository.
 - **On claude.ai:** account-wide plugins and connectors. Don't repeat them here.
 
 ## Change it

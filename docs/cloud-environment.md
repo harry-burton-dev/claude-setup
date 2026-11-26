@@ -18,7 +18,7 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 |---|---|---|
 | User `CLAUDE.md` | `cloud/setup.sh`, through `install.sh` | Documented to load. Check it with `/context`, under Memory files |
 | Skills, agents, commands in `~/.claude` | `install.sh` | **Not confirmed by the docs.** The docs only promise skills from the repository's `.claude/` and from claude.ai. Check them in the first session |
-| Plugins in `plugins.lock` | `install.sh`, through `claude plugin install` | Documented as a setup-script use, but the docs do not confirm they load. Check them in the first session |
+| Plugins in `plugins.lock` and the script's `ENV_PLUGINS` | `install.sh`, through `claude plugin install` | Documented as a setup-script use, but the docs do not confirm they load. Check them in the first session |
 | Plugins and connectors on claude.ai | Your account | They load in cloud sessions |
 | Project `CLAUDE.md`, `.claude/settings.json`, `.claude/skills/` | The repository | Loaded in a single-repository session, not in project threads |
 | User `settings.json` hooks | Nothing | **User-level hooks do not run in the cloud.** Put hooks in the repository |
@@ -49,6 +49,6 @@ These load everywhere, cloud included, so every one costs context in every sessi
 - **Coding:** `code-review`, `engineering`, `ci-optimizer`, `claude-code-setup`, `github`, `frontend-design`
 - **Not coding:** `product-management`, `design`, `productivity`, `cowork-plugin-management`, `project-artifact`, `langfuse`, `deeper-tasks`
 - **Desktop only, no use in the cloud:** `desktop-commander`
-- **One project only:** `outerpale-devops`. It belongs in the Outer-Pale repositories' `.claude/settings.json`, not on the account
+- **One project only:** `outerpale-devops`. Take it off the account and list it in `ENV_PLUGINS` in the Outer-Pale environment's setup script. Plugins are never committed to project repositories
 
 Turn off what a coding session doesn't need, at https://claude.ai/customize/plugins.

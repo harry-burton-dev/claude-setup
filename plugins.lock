@@ -1,6 +1,7 @@
 # Plugins installed at user scope on every machine and cloud VM, for plugins that are
-# not enabled on your claude.ai account. Plugins tied to one project (outerpale-devops,
-# for example) belong in that repository's .claude/settings.json instead.
+# not enabled on your claude.ai account. Plugins are never committed to project
+# repositories. A plugin for one project goes in ENV_PLUGINS in that project's
+# cloud environment setup script.
 # Format: plugin@marketplace  marketplace-source (owner/repo or git URL)
 #
 # (none yet)
