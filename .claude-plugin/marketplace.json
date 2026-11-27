@@ -28,6 +28,25 @@
       "name": "send-to-todoist",
       "source": "./plugins/send-to-todoist",
       "description": "Right-click selected text, or the action items in a reply, to send them to Todoist labelled Claude; plans drafted in a side pane before they go."
+    },
+    {
+      "name": "gsd-core",
+      "source": {
+        "source": "github",
+        "repo": "open-gsd/gsd-core",
+        "ref": "plugin",
+        "sha": "286961078c5a5fb76981cea6b5266f27701d84fd"
+      },
+      "description": "GSD Core 1.23.0 (open-gsd/gsd-core), pinned. To update, set sha to the new head of its plugin branch."
+    },
+    {
+      "name": "langfuse-observability",
+      "source": {
+        "source": "github",
+        "repo": "langfuse/Claude-Observability-Plugin",
+        "sha": "b1619f994240ad49de4a97caa01d7d7853944fc0"
+      },
+      "description": "Langfuse's Claude Code observability plugin 1.2.2 (langfuse/Claude-Observability-Plugin), pinned. To update, set sha to a newer commit."
     }
   ]
 }

@@ -58,6 +58,16 @@ grep -qx 'plugin marketplace add owner/market-repo' "$work/claude.log" || fail "
 grep -qx 'plugin install demo@market --scope user' "$work/claude.log" || fail "plugin not installed"
 ok "a listed plugin is installed through the claude CLI at user scope"
 
+# Third-party plugins are pinned: plugins.lock installs only from Harry's own repositories, and every
+# plugin claude-setup's marketplace takes from elsewhere names an exact commit.
+grep -vE '^\s*(#|$)' "$repo/plugins.lock" | awk '$2 !~ /^harry-burton-dev\//' | grep -q . && fail "plugins.lock installs from a third-party marketplace, which can't be pinned"
+node -e '
+  const m = require(process.argv[1]);
+  const loose = m.plugins.filter(p => typeof p.source !== "string" && !/^[0-9a-f]{40}$/.test(p.source.sha || ""));
+  if (loose.length) { console.error(loose.map(p => p.name).join(", ")); process.exit(1); }
+' "$repo/.claude-plugin/marketplace.json" || fail "a third-party plugin in marketplace.json has no exact sha"
+ok "third-party plugins are pinned to an exact commit"
+
 # install.sh records where this repository is, so the outerpale-startup hook can find projects/.
 [ "$(cat "$work/home/.claude/claude-setup-dir")" = "$repo" ] || fail "claude-setup-dir not recorded"
 ok "install.sh records where claude-setup is"
@@ -312,6 +322,12 @@ if [ "${1:-}" = "--vm" ]; then
     PATH="/tmp/oldnode:/tmp/bin:$PATH" bash /opt/claude-setup/cloud/setup.sh > /tmp/guard.log 2>&1 || true
     grep -q "^warning: node 26 is not the default node.*node is v22.0.0" /root/.claude/claude-setup.status || { cat /tmp/guard.log; exit 1; }
     echo "vm: a node that is not 26 after the install is a warning"
+    # A plugin that fails to install is a warning in the status file, not a failed setup:
+    # a failing setup script stops every session in the environment from starting.
+    printf "#!/usr/bin/env bash\n[ \"\$2\" = install ] && exit 1; exit 0\n" > /tmp/bin/claude
+    PATH="/tmp/bin:/opt/oldnode/bin:$PATH" bash /opt/claude-setup/cloud/setup.sh > /tmp/plugfail.log 2>&1 || { cat /tmp/plugfail.log; echo "setup.sh failed because a plugin failed"; exit 1; }
+    grep -q "^warning: .*plugin" /root/.claude/claude-setup.status || { cat /root/.claude/claude-setup.status; exit 1; }
+    echo "vm: a plugin that fails to install is a warning, and setup still finishes"
   ' || fail "cloud/setup.sh in ubuntu:24.04"
   ok "cloud/setup.sh works in a fresh ubuntu:24.04 container"
 fi

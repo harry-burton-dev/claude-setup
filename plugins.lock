@@ -3,10 +3,12 @@
 # repositories. A plugin for one project goes in ENV_PLUGINS in that project's
 # cloud environment setup script.
 # Format: plugin@marketplace  marketplace-source (owner/repo or git URL)
+# Third-party plugins are listed in claude-setup's own marketplace (.claude-plugin/marketplace.json) with an
+# exact commit sha, and installed from there, so a VM build never picks up an unreviewed upstream change.
 #
 # GSD Core: the build methodology (discuss, plan, execute, verify, ship), one phase per Linear issue.
-# State lives in each repository's .planning/, which is committed. Published plugin, not the next branch.
-gsd-core@gsd-core open-gsd/gsd-core
+# State lives in each repository's .planning/, which is committed. Published plugin, not the next branch; pinned in marketplace.json.
+gsd-core@claude-setup harry-burton-dev/claude-setup
 
 # Outer-Pale dev-ops: Linear issues, projects and initiatives in the Outer-Pale workspace, one PR per issue. Needs Node 18+.
 outerpale-devops@outerpale harry-burton-dev/outerpale-devops
@@ -23,7 +25,7 @@ outerpale-mem@claude-setup harry-burton-dev/claude-setup
 # outerpale-mem-global: global memory every session shares (OneDrive Claude/memory/_global/). Kept in this repository; leave it out to keep a machine's sessions without it.
 outerpale-mem-global@claude-setup harry-burton-dev/claude-setup
 
-# Langfuse observability: a Stop/SessionEnd hook that sends each turn's prompt, model output and tool calls to Harry's self-hosted Langfuse. Published by Langfuse.
+# Langfuse observability: a Stop/SessionEnd hook that sends each turn's prompt, model output and tool calls to Harry's self-hosted Langfuse. Published by Langfuse; pinned in marketplace.json.
 # Config comes from environment variables (they win over the plugin's setup wizard): LANGFUSE_BASE_URL, placeholder LANGFUSE_PUBLIC_KEY/SECRET_KEY
 # in cloud (the proxy injects the real Basic auth as a network secret) and CC_LANGFUSE_CAPTURE_IMAGES=false (the Funnel exposes only /api/public/otel).
-langfuse-observability@langfuse-observability langfuse/Claude-Observability-Plugin
+langfuse-observability@claude-setup harry-burton-dev/claude-setup

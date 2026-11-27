@@ -21,7 +21,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 
 | Plugin | From | Does |
 |---|---|---|
-| `gsd-core` | open-gsd/gsd-core | The build methodology: discuss → plan → execute → verify → ship, one phase at a time, in fresh-context subagents. State in `.planning/`, committed |
+| `gsd-core` | open-gsd/gsd-core, pinned in claude-setup's marketplace | The build methodology: discuss → plan → execute → verify → ship, one phase at a time, in fresh-context subagents. State in `.planning/`, committed |
 | `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only. The contract below needs 0.5.0 or later |
 | `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance; the intent reviewer (below) |
 | `outerpale-mem` | this repository's marketplace | Memory across sessions, in OneDrive (`docs/memory.md`) |

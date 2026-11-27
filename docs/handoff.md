@@ -7,7 +7,7 @@ The state of Harry's Claude setup at the end of the session that built most of i
 | Piece | Where | Version | Docs |
 |---|---|---|---|
 | User `CLAUDE.md`, `install.sh`, `cloud/bootstrap.sh` → `cloud/setup.sh` | claude-setup | `main` | `README.md`, `docs/cloud-environment.md` |
-| `gsd-core` (the build methodology; replaced EGM) | open-gsd/gsd-core | 1.23.0 | its docs |
+| `gsd-core` (the build methodology; replaced EGM) | open-gsd/gsd-core, pinned in claude-setup's marketplace | 1.23.0 | its docs |
 | `outerpale-devops`: scope question, one PR per issue, Linear guard | harry-burton-dev/outerpale-devops | 0.7.0 (one Linear issue per GSD phase) | its README |
 | `outerpale-startup`: project `CLAUDE.md` from `projects/`, `.work/` kept out of git, suggestion hooks, intent reviewer | claude-setup `plugins/` | 0.5.0 | `docs/workflow.md` |
 | `magister`: background second perspective, findings in OneDrive `Claude/magister/` | claude-setup `plugins/` | 0.1.0 | `docs/magister.md` |
@@ -34,7 +34,7 @@ Six proposals are pending in OneDrive; the first nightly dream will consolidate 
 
 1. **Tracing, from a new session.** Switched to the `langfuse-observability` plugin on 27 Nov. Checked that day from a cloud VM: with the network secret saved, a POST with placeholder auth to `harry-msi-server.tailfb071b.ts.net/api/public/otel/v1/traces` returns 200 (401 without the secret), and the plugin's hook, run on its own `tool_turn` fixture with placeholder keys, flushed four spans carrying `langfuse.observation.input` and `.output` with no export errors. In a new session, check the plugin is enabled, then look in Langfuse for a "Claude Code - Turn" trace with Input and Output filled; if none, read `~/.claude/state/langfuse_hook.log`.
 2. **The first nightly dream (28 Nov, 03:42).** Look for `Claude/memory/*/dreams/2026-11-28.md` and `.committed` markers.
-3. **Whether the new plugins load in a fresh session.** Mostly confirmed on 27 Nov, in a session built from `ddac595`: all six `plugins.lock` plugins were enabled at the versions above; the scope question, the global memory loader and the correction hook fired; Magister ran and uploaded its note; and both outboxes emptied after upload. Still to see: the Stop gate, and the intent reviewer in an issue session.
+3. **Whether the new plugins load in a fresh session.** Mostly confirmed on 27 Nov, in a session built from `ddac595`: all six `plugins.lock` plugins of that build (seven now, with `langfuse-observability`) were enabled at the versions above; the scope question, the global memory loader and the correction hook fired; Magister ran and uploaded its note; and both outboxes emptied after upload. Still to see: the Stop gate, and the intent reviewer in an issue session.
 4. **Repository memory in a session with several repositories.** Resolved in code by `outerpale-mem` 0.2.0, which asks for each repository's memory by name, and `tests/test.sh` covers it. Still to see: a fresh session with claude-setup and outerpale-devops loads both.
 
 ## Next
@@ -61,5 +61,4 @@ Six proposals are pending in OneDrive; the first nightly dream will consolidate 
 ## Loose ends to decide
 
 - **Conflicting rules:** `README.md` "What goes where" still lets project repositories hold `.claude/settings.json` and `.claude/skills/`, while `docs/workflow.md` says they hold nothing about Claude.
-- **Overlap:** `templates/repo/CLAUDE.md` overlaps with the `project-claude-md` skill.
 - **Dead pattern:** `outerpale-devops`'s `scripts/week-audit.js` still counts the old "UNFILED" message.
