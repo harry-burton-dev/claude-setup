@@ -1,22 +1,17 @@
 #!/usr/bin/env bash
-# Claude Code cloud environment setup script.
-# Paste this file into the environment's "Setup script" field on claude.ai.
+# Claude Code cloud VM setup. cloud/bootstrap.sh, pasted into the environment's
+# "Setup script" field on claude.ai, clones this repository and runs this file from the clone,
+# so a change here reaches every environment on its next build without pasting anything.
 # It runs as root on Ubuntu 24.04 the first time a session starts in the environment.
 # The resulting filesystem is cached for about 7 days, and the script runs again whenever
-# it, or the allowed domains, change. Background processes do not survive the cache.
+# the pasted script, or the allowed domains, change. Background processes do not survive the cache.
 #
 # Allowed domains it needs besides the default list: nodejs.org (for Node $NODE_MAJOR).
+#
+#   ENV_PLUGINS  plugins for this environment only, on top of plugins.lock, set by bootstrap.sh
 set -euo pipefail
 
-SETUP_REPO="https://github.com/harry-burton-dev/claude-setup.git"   # public, holds no secrets
-SETUP_REF="main"
 NODE_MAJOR="26"
-
-# Plugins for this environment only, on top of plugins.lock (which every machine gets).
-# Plugins are never committed to project repositories: a project's environment lists its own here.
-# One per line: plugin@marketplace  marketplace-source (owner/repo or git URL)
-ENV_PLUGINS="
-"
 
 warnings=()
 warn() { warnings+=("$*"); printf 'setup: WARNING %s\n' "$*"; }
@@ -49,16 +44,12 @@ else
   warn "corepack enable failed"
 fi
 
-# 3. The user-level Claude setup: CLAUDE.md, skills, agents, commands and plugins.
-#    SETUP_SRC lets a test point at a local copy instead of cloning.
-src="${SETUP_SRC:-/opt/claude-setup}"
-if [ -z "${SETUP_SRC:-}" ]; then
-  rm -rf "$src"
-  git clone -q --depth 1 --branch "$SETUP_REF" "$SETUP_REPO" "$src"
-fi
+# 3. The user-level Claude setup from the clone this script is in:
+#    CLAUDE.md, skills, agents, commands and plugins.
+src="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugins_lock="$(mktemp)"
 cat "$src/plugins.lock" > "$plugins_lock"
-printf '%s\n' "$ENV_PLUGINS" >> "$plugins_lock"
+printf '%s\n' "${ENV_PLUGINS:-}" >> "$plugins_lock"
 PLUGINS_LOCK="$plugins_lock" bash "$src/install.sh"
 rm -f "$plugins_lock"
 commit="$(git -C "$src" rev-parse --short HEAD 2>/dev/null || echo unknown)"

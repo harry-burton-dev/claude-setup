@@ -6,7 +6,7 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 
 | Setting | Use | Why |
 |---|---|---|
-| **Setup script** | `cloud/setup.sh`, pasted in (64 KB limit) | It runs as root on Ubuntu 24.04. The result is cached for about 7 days, and the script runs again when it or the allowed domains change |
+| **Setup script** | `cloud/bootstrap.sh`, pasted in once | It runs as root on Ubuntu 24.04, clones this repository and runs `cloud/setup.sh` from it. The result is cached for about 7 days, and the script runs again when the pasted script or the allowed domains change. So a pushed change reaches an environment within 7 days; to get it sooner, make any edit to the pasted script, such as a comment |
 | **Network access** | **Limited**, with **Allow package managers** ticked | The default list already covers GitHub, npm, Docker Hub and ghcr.io. Full access is not needed |
 | **Allowed domains** | `nodejs.org` | Node 26 is downloaded from there. Add a project's own registries (for example `quay.io` for Debezium images) in **that project's** environment, not here |
 | **Environment variables** | None in the generic environment | Tokens go into a project's environment, never into the setup script, which is not secret |
@@ -18,7 +18,7 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 |---|---|---|
 | User `CLAUDE.md` | `cloud/setup.sh`, through `install.sh` | Documented to load. Check it with `/context`, under Memory files |
 | Skills, agents, commands in `~/.claude` | `install.sh` | **Not confirmed by the docs.** The docs only promise skills from the repository's `.claude/` and from claude.ai. Check them in the first session |
-| Plugins in `plugins.lock` and the script's `ENV_PLUGINS` | `install.sh`, through `claude plugin install` | Documented as a setup-script use, but the docs do not confirm they load. Check them in the first session |
+| Plugins in `plugins.lock` and the pasted script's `ENV_PLUGINS` | `install.sh`, through `claude plugin install` | Documented as a setup-script use, but the docs do not confirm they load. Check them in the first session |
 | Plugins and connectors on claude.ai | Your account | They load in cloud sessions |
 | Project `CLAUDE.md`, `.claude/settings.json`, `.claude/skills/` | The repository | Loaded in a single-repository session, not in project threads |
 | User `settings.json` hooks | Nothing | **User-level hooks do not run in the cloud.** Put hooks in the repository |
@@ -30,7 +30,7 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 
 - **Commands time out** after 2 minutes by default, and 10 minutes at most. Run long work, such as bringing up a full Compose stack, in the background.
 - **Idle VMs pause** and can be reclaimed. Nothing running survives, only files do.
-- **GitHub access** goes through a proxy, and only for the repositories attached to the session. Cloning a public repository such as this one is expected to work, because `github.com` is on the allowlist, but the docs do not say so outright. If the clone fails, attach `claude-setup` to the environment as a second repository and set `SETUP_SRC` to its path.
+- **GitHub access** goes through a proxy, and only for the repositories attached to the session. Cloning this public repository from a setup script works (checked on 27 Nov 2026). If it ever fails, attach `claude-setup` to the environment as a second repository and point `bootstrap.sh` at that checkout's `cloud/setup.sh`.
 - **Running when your PC is off:** sessions and routines (`/schedule`: hourly at most, plus API triggers and GitHub pull request, release and issue events) run on Anthropic's machines. Auto-fix watches pull requests for CI failures and review comments.
 
 ## First-session checklist
