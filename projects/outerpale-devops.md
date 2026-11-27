@@ -15,7 +15,7 @@ Claude Code plugin for Outer-Pale project management in Linear: session scope, o
 
 # Conventions
 
-- Hooks fail open on any internal error, except before a Linear write, which they refuse (`hooks/run.js` header).
+- Hooks fail open on any internal error (`hooks/run.js` header).
 - Session state lives in `~/.linear-link/sessions/`, never in the project's repository. Tests use a fake `HOME`.
 - A behaviour change starts with a test in `tests/contract.test.js` that fails first.
 - Skills set the scope through `scripts/ll.js scope …`; the hooks only read prompts.
