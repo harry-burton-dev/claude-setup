@@ -2,7 +2,7 @@
 
 The same file is used on every machine. Each repository's own `CLAUDE.md` says where its work happens and which commands to run, and that file wins for its repository.
 
-In a cloud session, `~/.claude/claude-setup.status` says which tools this VM was given and whether setup warned about anything. Read it when a tool seems to be missing. Memory carries between sessions through `outerpale-mem`: each repository's memory is in OneDrive `Claude/memory/<repo>/`, loaded at session start. Save what a future session should know there; a rule that must always hold goes in the project's `CLAUDE.md` instead.
+In a cloud session, `~/.claude/claude-setup.status` says which tools this VM was given and whether setup warned about anything. Read it when a tool seems to be missing. Memory carries between sessions through `outerpale-mem`: each repository's memory is in OneDrive `Claude/memory/<repo>/`, loaded at session start. Save what a future session should know there; what holds across repositories (about Harry, how he works, his environment, cross-project lessons) goes in the global memory, `outerpale-mem-global`, in `Claude/memory/_global/`. A rule that must always hold goes in a `CLAUDE.md` instead.
 
 ## 1. Think before coding
 

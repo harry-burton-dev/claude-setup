@@ -186,6 +186,26 @@ ok "the memory loader only reads"
 [ -z "$(sug prompt '{"session_id":"q5","prompt":"2) Yes - i meant to do it so parallel sessions can update"}')" ] || fail "\"i meant\" counted as a correction"
 ok "\"i meant\" in the person's own explanation is not a correction"
 
+# outerpale-mem-global: memory every session shares, wherever it runs.
+memg="$repo/plugins/outerpale-mem-global/hooks/memg.js"
+mgx() { (cd "$1" && HOME="$work/memghome" node "$memg" "$2" <<<"$3"); }
+for d in "$work" "$work/demo" "$work/committed"; do
+  out="$(mgx "$d" session-start '{}')"
+  grep -q 'outerpale-mem-global:loader' <<<"$out" || fail "global memory was not loaded in $d"
+  grep -q 'Claude/memory/_global/' <<<"$out" || fail "session start did not name the global memory folder in $d"
+done
+ok "global memory is loaded in every session: outside a repository and in any repository"
+mkdir -p "$work/memghome/.outerpale-mem-global/outbox" && touch "$work/memghome/.outerpale-mem-global/outbox/20261127T1800-g.md"
+grep -q '1 global memory proposal' <<<"$(mgx "$work" session-start '{}')" || fail "an unsent global proposal was not flagged"
+grep -q '"block"' <<<"$(mgx "$work" stop '{"stop_hook_active":false}')" || fail "a session could finish with a global proposal not uploaded"
+[ -z "$(mgx "$work" stop '{"stop_hook_active":true}')" ] || fail "the global stop check blocked twice"
+mgx "$work" uploaded '{"tool_name":"mcp__Microsoft_365__sharepoint_upload_file","tool_input":{"filename":"20261127T1800-g.md"},"tool_response":"File uploaded (9 bytes).\nwebUrl: https://x"}'
+[ ! -e "$work/memghome/.outerpale-mem-global/outbox/20261127T1800-g.md" ] || fail "an uploaded global proposal stayed in the outbox"
+grep -q '"deny"' <<<"$(mgx "$work" guard '{"agent_type":"outerpale-mem-global:loader","tool_name":"Bash","tool_input":{}}')" || fail "the global loader could run a command"
+ok "global proposals can't be left un-uploaded, the stop check never loops, and the global loader only reads"
+grep -q '_global' "$repo/plugins/outerpale-mem/skills/dream/SKILL.md" || fail "the repository dream doesn't leave _global to its own dream"
+ok "the repository dream leaves _global to outerpale-mem-global"
+
 # Magister's eval grader, on fixtures (no model), and every case well formed.
 node --test "$repo/tests/evals/magister/grade.test.js" >/dev/null 2>&1 || fail "Magister's eval grader"
 node -e '

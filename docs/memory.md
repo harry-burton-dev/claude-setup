@@ -45,3 +45,18 @@ These follow auto memory's documented startup load: the first 200 lines or 25 KB
   2. after a dream it is in `MEMORY.md`;
   3. a session on another repository doesn't see it.
 - **On and off:** compare real tasks with memory loaded and without it. Memory that's delivered but never used is the common failure.
+
+## Global memory (outerpale-mem-global)
+
+A separate plugin, so each machine can choose whether to install it. It works the same way as repository memory, but **every** session loads it, in any repository or none. Its folder is `Claude/memory/_global/`, laid out like a repository's.
+
+| | Repository memory | Global memory |
+|---|---|---|
+| Loaded in | Sessions in that repository | Every session |
+| Index limit | 200 lines / 25 KB | 100 lines / 12 KB, because every session pays for it |
+| Types | `project`, `feedback`, `user`, `reference` | `profile`, `preference`, `lesson`, `environment`, `pattern`, `reference` |
+| Consolidated by | `outerpale-mem:dream`, which skips `_global` | `outerpale-mem-global:dream`, in the same nightly task |
+
+- **Where a memory goes:** if it would still be true in a different repository, it's global; otherwise it belongs to that repository.
+- **Promotion:** the global dream proposes promoting a lesson that appears in two or more repositories. It never moves a repository's memories itself.
+- **What's kept about you:** each global dream report lists every `profile` and `preference` memory it added or changed.
