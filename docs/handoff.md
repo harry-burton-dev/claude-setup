@@ -7,8 +7,8 @@ The state of Harry's Claude setup at the end of the session that built most of i
 | Piece | Where | Version | Docs |
 |---|---|---|---|
 | User `CLAUDE.md`, `install.sh`, `cloud/bootstrap.sh` → `cloud/setup.sh` | claude-setup | `main` | `README.md`, `docs/cloud-environment.md` |
-| `egm` (design docs) | google/elephant-goldfish-model | 0.1.1 | its README |
-| `outerpale-devops`: scope question, one PR per issue, Linear guard | harry-burton-dev/outerpale-devops | 0.6.0 (Langfuse sender removed) | its README |
+| `gsd-core` (the build methodology; replaced EGM) | open-gsd/gsd-core | 1.23.0 | its docs |
+| `outerpale-devops`: scope question, one PR per issue, Linear guard | harry-burton-dev/outerpale-devops | 0.7.0 (one Linear issue per GSD phase) | its README |
 | `outerpale-startup`: project `CLAUDE.md` from `projects/`, `.work/` kept out of git, suggestion hooks, intent reviewer | claude-setup `plugins/` | 0.5.0 | `docs/workflow.md` |
 | `magister`: background second perspective, findings in OneDrive `Claude/magister/` | claude-setup `plugins/` | 0.1.0 | `docs/magister.md` |
 | `outerpale-mem`: repository memory in OneDrive `Claude/memory/<repo>/` | claude-setup `plugins/` | 0.1.1 | `docs/memory.md` |
@@ -32,7 +32,7 @@ Six proposals are pending in OneDrive; the first nightly dream will consolidate 
 
 ## Not yet verified
 
-1. **Tracing, from a new session.** The endpoint was corrected to the Funnel host `harry-msi-server.tailfb071b.ts.net`; the `langfuse.` name doesn't resolve publicly. Check `/tmp/claude-code.log` for `[3P telemetry]`, then look for `claude_code.interaction` traces in Langfuse. `CLAUDE_CODE_ENABLE_TELEMETRY` isn't among the environment's variables; it reached this session's commands anyway, but add it explicitly if traces don't appear.
+1. **Tracing, from a new session.** Checked 27 Nov: the Funnel endpoint `harry-msi-server.tailfb071b.ts.net/api/public/otel/v1/traces` is reachable from a cloud VM (401 without credentials). But `CLAUDE_CODE_ENABLE_TELEMETRY` is set nowhere (not in the environment, settings or launcher settings), and Claude Code's docs say it is required, so nothing is exported. A session can't set it (`update_environment` refuses it as reserved): Harry adds `CLAUDE_CODE_ENABLE_TELEMETRY=1` to the Outer-Pale environment's variables in Settings. Then, in a new session, look for `claude_code.interaction` traces in Langfuse. `/tmp/claude-code.log` is no check in the cloud: it holds only the launcher header, because the session's debug output goes to stderr.
 2. **The first nightly dream (28 Nov, 03:42).** Look for `Claude/memory/*/dreams/2026-11-28.md` and `.committed` markers.
 3. **Whether the new plugins load in a fresh session:**
    - Magister's moment note;

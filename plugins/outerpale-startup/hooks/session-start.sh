@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart: keep .work/ (scratch, EGM working files, reviews) out of git, and give each
+# SessionStart: keep .work/ (scratch and reviews) out of git, and give each
 # repository its project CLAUDE.md, which lives in claude-setup's projects/<repo>.md and never
 # in the repository itself. Silent when there is nothing to say.
 # A session covers the repository it starts in; a cloud session with several repositories starts

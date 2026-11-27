@@ -28,10 +28,9 @@ Turn each task into a check that can run, such as a test, a script or a command 
 
 ## Docs and scratch
 
-- Finished design docs go in the repository's `docs/design/`, committed in that design issue's PR.
-- Scratch, plans, EGM working files and review reports go in `.work/`, which is never committed (the startup hook keeps it out of git).
-
-EGM artifact directory: .work/egm
+- Work runs through GSD. Its `.planning/` (roadmap, state, each phase's context and plan) is the project's plan and is committed with the work. One Linear issue is one GSD phase.
+- In a GSD project, set `claude_md_assembly.mode` to `link` (`/gsd-settings`), so GSD's sections live in `.planning/` and `CLAUDE.md` only needs `@.planning/...` lines, which belong in the project's `projects/<repo>.md`.
+- Scratch and review reports go in `.work/`, which is never committed (the startup hook keeps it out of git).
 
 ## Setup improvement advice
 

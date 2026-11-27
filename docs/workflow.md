@@ -21,7 +21,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 
 | Plugin | From | Does |
 |---|---|---|
-| `egm` | google/elephant-goldfish-model | Design docs: `/egm:egm-brainstorm` → `/egm:egm-draft` → `/egm:egm-review`, plus drift reports against the code. Vanilla, no templates of Harry's own |
+| `gsd-core` | open-gsd/gsd-core | The build methodology: discuss → plan → execute → verify → ship, one phase at a time, in fresh-context subagents. State in `.planning/`, committed |
 | `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only. The contract below needs 0.5.0 or later |
 | `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance; the intent reviewer (below) |
 | `outerpale-mem` | this repository's marketplace | Memory across sessions, in OneDrive (`docs/memory.md`) |
@@ -60,7 +60,6 @@ A pushed change reaches an environment on its next VM build: within 7 days, or a
 
 - Unconfirmed: whether a file the setup script writes into a checkout survives a cached VM start (the marker test).
 - Session traces go to Langfuse through Claude Code's own OpenTelemetry export (beta), configured in each cloud environment's variables, with the auth header among them. Each environment and each machine needs them set; `outerpale-devops` no longer sends anything.
-- EGM's own reviews are thrown away with `.work/`; nothing keeps a record of them yet.
 
 ## Project management in Linear
 
@@ -68,13 +67,13 @@ Linear is the record of what is being done. Initiative → project → issue; ev
 
 | Session | Works on | Produces | Linked in Linear by |
 |---|---|---|---|
-| Design | A project or initiative, through its "Design: …" issue | A design doc in `docs/design/<slug>.md` (EGM's working files in `.work/egm/`) | The design issue's PR, and a link on the project |
-| Review and breakdown | A project | The project's issues, each with its implementation plan in the description (`outerpale-devops:break-down`) | The issues themselves |
-| Build | One issue | One PR, titled `OUT-123: …` with `Fixes OUT-123` in the body | Linear's GitHub integration, from the ID |
+| Design | A project or initiative, through its "Design: …" issue | GSD's roadmap and phases in `.planning/`, through its discuss and plan steps | The design issue's PR, and a link on the project |
+| Review and breakdown | A project | One Linear issue per GSD phase: goal, acceptance criteria and a link to the phase (`outerpale-devops:break-down`) | The issues themselves |
+| Build | One issue, which is one GSD phase | The phase executed and verified by GSD, then one PR titled `OUT-123: …` with `Fixes OUT-123` in the body | Linear's GitHub integration, from the ID |
 | Other | None | Anything | Nothing |
 
 - **Status sync is Linear's.** The GitHub integration links a PR from the issue ID and moves the issue when the PR merges. Claude moves an issue to In Progress when a session starts on it (`build-issue`), and never sets Done by hand.
-- **A builder finds everything from its issue:** the plan in the description, the design doc through its link.
+- **Linear holds what and when; `.planning/` holds how.** A builder finds its phase from the issue. The plan is the phase's `PLAN.md`, written and read by GSD's agents, never by hand.
 - **Enforced:** `outerpale-devops` refuses a PR without the session's issue ID, or, in a project or initiative session, without any issue ID.
-- **In the repository:** only code and `docs/design/`. Scratch, plans and reviews go in `.work/`, which never reaches git.
-- **Not designed yet:** the issue builder, and orchestration of agents across a project's issues. This contract is what they will hand out and collect.
+- **In the repository:** code and GSD's `.planning/`. Scratch and reviews go in `.work/`, which never reaches git.
+- **Building and orchestration are GSD's:** `/gsd-execute-phase` runs plans in parallel waves of fresh-context subagents, and `/gsd-manager` and `/gsd-autonomous` drive several phases. What remains is phase 0 of the research report: branch protection and a PR-title check.
