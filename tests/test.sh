@@ -113,7 +113,7 @@ if [ "${1:-}" = "--vm" ]; then
     cmp -s /opt/claude-setup/CLAUDE.md /root/.claude/CLAUDE.md
     grep -q "^claude-setup" /root/.claude/claude-setup.status
     grep -q "^warnings: none" /root/.claude/claude-setup.status
-    command -v pnpm >/dev/null
+    PATH="/opt/oldnode/bin:$PATH" command -v pnpm >/dev/null
     shellcheck /opt/claude-setup/install.sh /opt/claude-setup/cloud/setup.sh /opt/claude-setup/cloud/bootstrap.sh /opt/claude-setup/tests/test.sh
     echo "vm: shellcheck clean, pnpm on PATH, no setup warnings"
     echo "vm: setup.sh ran as root and installed /root/.claude/CLAUDE.md"
