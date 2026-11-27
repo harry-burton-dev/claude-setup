@@ -390,6 +390,16 @@ for (const f of fs.readdirSync(p)) { const c=JSON.parse(fs.readFileSync(p+f));
   if (["flaw","literal"].includes(c.kind)&&!(c.expect.mention_any||[]).length) throw new Error(f); }' "$repo" || fail "a Magister eval case is malformed"
 ok "Magister's eval grader passes its tests, and every eval case is well formed"
 
+# The magister-avatar mod ships through plugins.lock, so a broken one would reach every machine.
+grep -qx 'magister-avatar@claude-setup harry-burton-dev/claude-setup' "$repo/plugins.lock" || fail "magister-avatar is not in plugins.lock"
+if command -v claude >/dev/null 2>&1; then
+  claude plugin validate "$repo/plugins/magister-avatar" 2>&1 | grep -q 'Validation passed' || fail "magister-avatar does not validate"
+  claude plugin test "$repo/plugins/magister-avatar" >/dev/null 2>&1 || fail "magister-avatar's tests"
+  ok "magister-avatar is in plugins.lock, validates, and passes its tests"
+else
+  printf 'skip: claude not installed, magister-avatar not tested\n'
+fi
+
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" "$repo/tests/hook-contract.sh" "$repo/tests/jit-backtest.sh" || fail "shellcheck"
   ok "shellcheck clean"
