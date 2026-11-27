@@ -7,9 +7,8 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 | Setting | Use | Why |
 |---|---|---|
 | **Setup script** | `cloud/bootstrap.sh`, pasted in once | It runs as root on Ubuntu 24.04, clones this repository and runs `cloud/setup.sh` from it. The result is cached for about 7 days, and the script runs again when the pasted script or the allowed domains change. So a pushed change reaches an environment within 7 days; to get it sooner, make any edit to the pasted script, such as a comment |
-| **Network access** | **Limited**, with **Allow package managers** ticked | The default list already covers GitHub, npm, Docker Hub and ghcr.io. Full access is not needed |
-| **Allowed domains** | `nodejs.org` | Node 26 is downloaded from there. Add a project's own registries (for example `quay.io` for Debezium images) in **that project's** environment, not here |
-| **Environment variables** | None in the generic environment | Tokens go into a project's environment, never into the setup script, which is not secret |
+| **Network access** | **Unrestricted** (the Outer-Pale environment, chosen 27 Nov 2026) | Node 26 comes from `nodejs.org`, and the Langfuse Funnel host must be reachable. Under **Limited**, allow `nodejs.org` and add a project's own registries (for example `quay.io` for Debezium images) in **that project's** environment |
+| **Environment variables** | Telemetry only: `CLAUDE_CODE_ENABLE_TELEMETRY`, `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA`, `OTEL_TRACES_EXPORTER`, `OTEL_EXPORTER_OTLP_TRACES_{ENDPOINT,HEADERS,PROTOCOL}` | Never put them in the setup script, which is not secret. A session can't set `CLAUDE_CODE_*` variables (`update_environment` refuses them), so they're set in Settings. The headers variable holds the Langfuse keys in plain text; Harry plans to move the keys to his own cloud |
 | **Number of environments** | One generic environment, plus one per project whose domains or secrets differ | Each environment has its own allowlist and variables |
 
 ## What a cloud VM gets, and from where
@@ -20,10 +19,10 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 | Skills, agents, commands in `~/.claude` | `install.sh` | **Not confirmed by the docs.** The docs only promise skills from the repository's `.claude/` and from claude.ai. Check them in the first session |
 | Plugins in `plugins.lock` and the pasted script's `ENV_PLUGINS` | `install.sh`, through `claude plugin install` | Documented as a setup-script use, but the docs do not confirm they load. Check them in the first session |
 | Project `CLAUDE.md` (`./CLAUDE.md` in the checkout) | The `outerpale-startup` plugin's SessionStart hook, from `projects/<repo>.md` | Copied on the first session and kept out of git. That session gets the text from the hook, since the file only loads from the next session |
-| Plugins and connectors on claude.ai | Your account | They load in cloud sessions |
+| Plugins and connectors on claude.ai | Your account | Connectors load. Of the account plugins, only `cowork-plugin-management` reached a session on 27 Nov 2026 (`claude plugin list`, "Synced from claude.ai") |
 | Project `CLAUDE.md`, `.claude/settings.json`, `.claude/skills/` | The repository | Loaded in a single-repository session, not in project threads |
-| User `settings.json` hooks | Nothing | **User-level hooks do not run in the cloud.** Put hooks in the repository |
-| Memory | Nothing | It does not carry between cloud sessions |
+| User `settings.json` hooks | Nothing | **User-level hooks do not run in the cloud.** Plugin hooks do: every `plugins.lock` plugin's hooks fired in a session on 27 Nov 2026 |
+| Memory | `outerpale-mem` and `outerpale-mem-global`, from OneDrive | Claude Code's own auto memory is off in cloud sessions. Repository memory loads only when the session starts in the repository: a session with several repositories, which starts in their parent folder, gets none yet |
 | Docker and `docker compose` | Already on the VM | Containers and background services must be started again in every session |
 | Node 26, pnpm, jq, shellcheck, ripgrep | `cloud/setup.sh` | Node 22 is already installed. The script installs 26 over it in `/opt/node22`, which comes first on PATH, and puts corepack back, because Node 25 and later no longer bundle it |
 
@@ -45,11 +44,8 @@ Run these once, in a new session, after you change the environment:
 
 ## Claude.ai account plugins
 
-These load everywhere, cloud included, so every one costs context in every session. Enabled on 26 Nov 2026:
+Account plugins cost context in every session they reach. On 27 Nov 2026 Harry removed the ones listed here earlier; only `cowork-plugin-management` was still syncing. `outerpale-devops` stays off the account, because `plugins.lock` installs it and it would otherwise load twice. Plugins are never committed to project repositories.
 
-- **Coding:** `code-review`, `engineering`, `ci-optimizer`, `claude-code-setup`, `github`, `frontend-design`
-- **Not coding:** `product-management`, `design`, `productivity`, `cowork-plugin-management`, `project-artifact`, `langfuse`, `deeper-tasks`
-- **Desktop only, no use in the cloud:** `desktop-commander`
-- **Installed by `plugins.lock` instead:** `outerpale-devops`, since this setup is the Outer-Pale setup. Keep it off the account so it isn't loaded twice. Plugins are never committed to project repositories
+## GitHub tools
 
-Turn off what a coding session doesn't need, at https://claude.ai/customize/plugins.
+Cloud sessions have two GitHub servers, on purpose. Lowercase `github` carries the Actions tools (`actions_*`, `get_job_logs`), and capitalised `GitHub` (Harry's custom connector) carries the `search_*` tools. Most other tools appear on both, which costs context; that is accepted.

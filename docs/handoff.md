@@ -32,15 +32,10 @@ Six proposals are pending in OneDrive; the first nightly dream will consolidate 
 
 ## Not yet verified
 
-1. **Tracing, from a new session.** Checked 27 Nov: the Funnel endpoint `harry-msi-server.tailfb071b.ts.net/api/public/otel/v1/traces` is reachable from a cloud VM (401 without credentials). But `CLAUDE_CODE_ENABLE_TELEMETRY` is set nowhere (not in the environment, settings or launcher settings), and Claude Code's docs say it is required, so nothing is exported. A session can't set it (`update_environment` refuses it as reserved): Harry adds `CLAUDE_CODE_ENABLE_TELEMETRY=1` to the Outer-Pale environment's variables in Settings. Then, in a new session, look for `claude_code.interaction` traces in Langfuse. `/tmp/claude-code.log` is no check in the cloud: it holds only the launcher header, because the session's debug output goes to stderr.
+1. **Tracing, from a new session.** Checked 27 Nov: the Funnel endpoint `harry-msi-server.tailfb071b.ts.net/api/public/otel/v1/traces` is reachable from a cloud VM (401 without credentials). `CLAUDE_CODE_ENABLE_TELEMETRY`, which Claude Code's docs say is required, was missing. Harry added it in Settings that evening, and variables only apply from the next session. In a new session, check that `OTEL_TRACES_EXPORTER` is `otlp` (`http/protobuf` is the protocol's value), then look for `claude_code.interaction` traces in Langfuse. `/tmp/claude-code.log` is no check in the cloud: it holds only the launcher header.
 2. **The first nightly dream (28 Nov, 03:42).** Look for `Claude/memory/*/dreams/2026-11-28.md` and `.committed` markers.
-3. **Whether the new plugins load in a fresh session:**
-   - Magister's moment note;
-   - the memory loader at session start;
-   - the Stop gate;
-   - the intent reviewer in an issue session.
-
-   Everything was tested by hooks, unit tests and subagents, but not yet by a fresh session with the plugins installed from `main`.
+3. **Whether the new plugins load in a fresh session.** Mostly confirmed on 27 Nov, in a session built from `ddac595`: all six `plugins.lock` plugins were enabled at the versions above; the scope question, the global memory loader and the correction hook fired; Magister ran and uploaded its note; and both outboxes emptied after upload. Still to see: the Stop gate, and the intent reviewer in an issue session.
+4. **Repository memory in a session with several repositories.** `outerpale-startup` 0.5.0 now covers each repository under the start folder, but `outerpale-mem` still loads memory only for the repository the session starts in. In a session with claude-setup and outerpale-devops, neither repository's memory loaded.
 
 ## Next
 
