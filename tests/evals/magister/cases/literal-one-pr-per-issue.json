@@ -1,0 +1,20 @@
+{
+  "kind": "literal",
+  "brief": {
+    "work": "Applying the rule 'one PR per issue'",
+    "goal": "Small, reviewable changes tied to the tracker",
+    "decision": "An issue 'Rebuild the billing module' becomes one 3,000-line PR, because the rule says one PR per issue."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Applying the rule 'one PR per issue'\n\n## Goal\n\nSmall, reviewable changes tied to the tracker.\n\n## Design\n\nAn issue 'Rebuild the billing module' becomes one 3,000-line PR, because the rule says one PR per issue.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "split",
+      "smaller",
+      "size",
+      "review",
+      "break (?:it )?(?:down|up)"
+    ]
+  }
+}

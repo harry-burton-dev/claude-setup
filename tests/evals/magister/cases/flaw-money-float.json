@@ -1,0 +1,20 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "Invoice totals",
+    "goal": "Invoices add up exactly",
+    "decision": "Store prices and totals as JavaScript numbers (floating point) and round to 2 places when displaying."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Invoice totals\n\n## Goal\n\nInvoices add up exactly.\n\n## Design\n\nStore prices and totals as JavaScript numbers (floating point) and round to 2 places when displaying.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "float",
+      "rounding",
+      "decimal",
+      "cents",
+      "integer"
+    ]
+  }
+}

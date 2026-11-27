@@ -1,0 +1,20 @@
+{
+  "kind": "sound",
+  "brief": {
+    "work": "Payment API",
+    "goal": "No double charges",
+    "decision": "Clients send an Idempotency-Key; the server stores the key and the response for 24 hours and replays the response on a repeat."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Payment API\n\n## Goal\n\nNo double charges.\n\n## Design\n\nClients send an Idempotency-Key; the server stores the key and the response for 24 hours and replays the response on a repeat.\n"
+  },
+  "expect": {
+    "must_not": [
+      "critical",
+      "must fix",
+      "blocker",
+      "serious flaw",
+      "will break"
+    ]
+  }
+}

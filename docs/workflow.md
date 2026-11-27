@@ -21,7 +21,8 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 |---|---|---|
 | `egm` | google/elephant-goldfish-model | Design docs: `/egm:egm-brainstorm` → `/egm:egm-draft` → `/egm:egm-review`, plus drift reports against the code. Vanilla, no templates of Harry's own |
 | `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only, Langfuse traces. The contract below needs 0.5.0 or later |
-| `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance; the companion and the intent reviewer (below) |
+| `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance; the intent reviewer (below) |
+| `magister` | this repository's marketplace | Magister, the background second perspective (below) |
 
 ## A session, start to finish
 
@@ -31,14 +32,16 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 4. **As rules emerge:** when you correct Claude, or a project command has been run three times, `outerpale-startup` prompts Claude to offer a one-line addition to the project `CLAUDE.md`; on a yes, the skill opens a PR to `projects/<repo>.md` here.
 5. **Changing the setup itself:** edit this repository, `tests/test.sh`, PR, merge. Claude may merge PRs in claude-setup when Harry has said so in that session.
 
-## The companion
+## Magister
 
-A second perspective that makes the work better, without being asked and without interrupting. At design, UI and decision moments a hook reminds Claude of it; Claude decides whether it would add something, and if so runs `outerpale-startup:companion` in the background. It picks the lenses that help most: **research** (best practice, recent work, with sources), **analysis** (intent against what is being built, assumptions, rules taken too literally), **support** (a choice is sound and should stay) and **alternatives** (examples, another perspective, a built variant). It may say "nothing material to add".
+A second perspective that makes the work better, without being asked and without interrupting. It is its own plugin, `magister`. At design, UI and decision moments a hook reminds Claude of it; Claude decides whether it would add something, and if so runs `magister:magister` in the background. It picks the lenses that help most: **research** (best practice, recent work, with sources), **analysis** (intent against what is being built, assumptions, rules taken too literally), **support** (a choice is sound and should stay) and **alternatives** (examples, another perspective, a built variant). It may say "nothing material to add".
 
-- **Where findings go:** Harry's own log, not the project's: one Markdown file per finding, with a quoted-YAML header, in OneDrive `Claude/companion/`, through the Microsoft 365 connector. Variants are uploaded beside it as `<finding>--<variant>.<ext>`. A viewer lists the folder.
-- **How you hear about it:** a short `Companion:` note at the end of a later reply, with the OneDrive link. Deep research is only ever offered ("say 'research it'").
-- **What it can touch:** a hook holds it to `.work/` and `~/.companion/`, with no shell. Findings wait in `~/.companion/outbox/` until uploaded; a hook clears each one once it reaches OneDrive, and session start flags any left behind.
-- **Intent reviewer:** `outerpale-startup:intent-reviewer`, read-only, checks a branch's diff against its issue's goal and design intent before the PR opens (`outerpale-devops:start-issue`).
+- **Where findings go:** Harry's own log, not the project's: one Markdown file per finding, with a quoted-YAML header, in OneDrive `Claude/magister/`, through the Microsoft 365 connector. Variants are uploaded beside it as `<finding>--<variant>.<ext>` and listed in its `attachments`. The viewer's contract, including ratings, is in `docs/magister.md`.
+- **How you hear about it:** a short `Magister:` note at the end of a later reply, with the OneDrive link. Deep research is only ever offered ("say 'research it'").
+- **What it can touch:** a hook holds it to `.work/` and `~/.magister/`, with no shell. Findings wait in `~/.magister/outbox/` until uploaded; a hook clears each one once it reaches OneDrive, and session start flags any left behind.
+- **Evals:** `tests/evals/magister/` (see `docs/magister.md`).
+
+The intent reviewer, `outerpale-startup:intent-reviewer`, read-only, checks a branch's diff against its issue's goal and design intent before the PR opens (`outerpale-devops:start-issue`).
 
 ## Cloud environments
 

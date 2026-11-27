@@ -8,6 +8,11 @@
       "name": "outerpale-startup",
       "source": "./plugins/outerpale-startup",
       "description": "Session start work for every repository: fetches its project CLAUDE.md from claude-setup, and a skill to write one."
+    },
+    {
+      "name": "magister",
+      "source": "./plugins/magister",
+      "description": "Magister: a background second perspective at design, UI and decision moments; findings go to OneDrive."
     }
   ]
 }

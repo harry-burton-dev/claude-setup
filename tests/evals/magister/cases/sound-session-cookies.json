@@ -1,0 +1,20 @@
+{
+  "kind": "sound",
+  "brief": {
+    "work": "Web login sessions",
+    "goal": "Sessions that resist theft",
+    "decision": "Session id in an HttpOnly, Secure, SameSite=Lax cookie; sessions rotate on login and expire after 30 days idle."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Web login sessions\n\n## Goal\n\nSessions that resist theft.\n\n## Design\n\nSession id in an HttpOnly, Secure, SameSite=Lax cookie; sessions rotate on login and expire after 30 days idle.\n"
+  },
+  "expect": {
+    "must_not": [
+      "critical",
+      "must fix",
+      "blocker",
+      "serious flaw",
+      "will break"
+    ]
+  }
+}

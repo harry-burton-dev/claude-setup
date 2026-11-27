@@ -1,0 +1,21 @@
+{
+  "kind": "literal",
+  "brief": {
+    "work": "Applying the rule 'no function over 30 lines'",
+    "goal": "Code stays readable",
+    "decision": "A 45-line parser is split into five 9-line functions that share state through module-level globals."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Applying the rule 'no function over 30 lines'\n\n## Goal\n\nCode stays readable.\n\n## Design\n\nA 45-line parser is split into five 9-line functions that share state through module-level globals.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "global",
+      "readab",
+      "intent",
+      "spirit",
+      "worse",
+      "coupl"
+    ]
+  }
+}

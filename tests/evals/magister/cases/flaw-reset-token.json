@@ -1,0 +1,21 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "Password reset",
+    "goal": "Only the account owner can reset a password",
+    "decision": "The reset link carries a UUID v1 generated when the request is made; it expires after 7 days."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Password reset\n\n## Goal\n\nOnly the account owner can reset a password.\n\n## Design\n\nThe reset link carries a UUID v1 generated when the request is made; it expires after 7 days.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "predict",
+      "guess",
+      "v1",
+      "random",
+      "entropy",
+      "7 days"
+    ]
+  }
+}

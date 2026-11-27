@@ -1,0 +1,19 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "A permissions service for the admin app",
+    "goal": "Admins can grant and revoke access safely",
+    "decision": "Cache each user's permissions in Redis for 24 hours to cut database load; revoking a permission updates the database."
+  },
+  "files": {
+    "docs/design/proposal.md": "# A permissions service for the admin app\n\n## Goal\n\nAdmins can grant and revoke access safely.\n\n## Design\n\nCache each user's permissions in Redis for 24 hours to cut database load; revoking a permission updates the database.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "revok",
+      "stale",
+      "invalidat",
+      "24 hours"
+    ]
+  }
+}

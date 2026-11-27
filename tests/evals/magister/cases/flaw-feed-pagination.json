@@ -1,0 +1,20 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "An activity feed API",
+    "goal": "Clients page through the feed without gaps or repeats",
+    "decision": "Paginate with ?page=N&size=50 using SQL OFFSET; new items arrive at the top several times a second."
+  },
+  "files": {
+    "docs/design/proposal.md": "# An activity feed API\n\n## Goal\n\nClients page through the feed without gaps or repeats.\n\n## Design\n\nPaginate with ?page=N&size=50 using SQL OFFSET; new items arrive at the top several times a second.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "offset",
+      "cursor",
+      "keyset",
+      "duplicate",
+      "skip"
+    ]
+  }
+}

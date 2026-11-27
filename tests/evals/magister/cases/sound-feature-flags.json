@@ -1,0 +1,20 @@
+{
+  "kind": "sound",
+  "brief": {
+    "work": "Releasing risky features",
+    "goal": "Turn a feature off fast if it misbehaves",
+    "decision": "Every new feature ships behind a flag, default off, with a kill switch in the admin; flags are removed within two releases."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Releasing risky features\n\n## Goal\n\nTurn a feature off fast if it misbehaves.\n\n## Design\n\nEvery new feature ships behind a flag, default off, with a kill switch in the admin; flags are removed within two releases.\n"
+  },
+  "expect": {
+    "must_not": [
+      "critical",
+      "must fix",
+      "blocker",
+      "serious flaw",
+      "will break"
+    ]
+  }
+}

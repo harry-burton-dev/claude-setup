@@ -1,0 +1,12 @@
+{
+  "kind": "variant",
+  "brief": {
+    "work": "The account settings page",
+    "goal": "Users find and change a setting quickly",
+    "decision": "One long form with 40 fields in a single column and one Save button at the bottom."
+  },
+  "files": {
+    "docs/design/proposal.md": "# The account settings page\n\n## Goal\n\nUsers find and change a setting quickly.\n\n## Design\n\nOne long form with 40 fields in a single column and one Save button at the bottom.\n"
+  },
+  "expect": {}
+}
