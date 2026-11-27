@@ -1,0 +1,5 @@
+# Bugs tests/test.sh let through. id<TAB>buggy_rev<TAB>fixed_rev<TAB>paths<TAB>what went wrong (for scoring; never shown to the generator)
+B1	09b5369	dd39928	plugins/outerpale-startup/hooks/	SessionStart hook does nothing when a cloud session starts in the non-git parent of several repositories
+B2	064a7d5	b2959fd	plugins/outerpale-mem/hooks/	the same bug in outerpale-mem: no memory loaded from a non-git parent folder
+B3	6dde42e	c28869c	cloud/setup.sh	Node 26 still shadowed by /opt/node22/bin on cloud VMs after the first fix (needs --vm)
+B4	35d73b4	a9e048c	install.sh	install.sh, cloud/setup.sh and tests/test.sh committed without the executable bit

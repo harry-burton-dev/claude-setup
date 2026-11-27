@@ -59,7 +59,9 @@ const modes = {
   uploaded(input) {
     const name = path.basename(String((input.tool_input || {}).filename || ''));
     const resp = typeof input.tool_response === 'string' ? input.tool_response : JSON.stringify(input.tool_response || '');
-    if (!/\.md$/.test(name) || !/webUrl/.test(resp) || /\berror\b/i.test(resp)) return;
+    // "error" counts only outside the file's own name and URL (a proposal may be called …-error-handling.md).
+    const said = resp.split(name).join('').replace(/https?:\/\/\S+/g, '');
+    if (!/\.md$/.test(name) || !/webUrl/.test(resp) || /\berror\b/i.test(said)) return;
     fs.rmSync(path.join(outbox(), name), { force: true });
   },
 };

@@ -10,14 +10,21 @@ set -euo pipefail
 setup="$(cat "$HOME/.claude/claude-setup-dir" 2>/dev/null || true)"
 
 one_repo() {  # $1 the repository root, $2 how to show its folder ("." or its name), $3 what to call it
-  local root="$1" rel="$2" label="$3" exclude name src
+  local root="$1" rel="$2" label="$3" exclude name src common
   exclude="$(git -C "$root" rev-parse --git-path info/exclude)"
   case "$exclude" in /*) ;; *) exclude="$root/$exclude" ;; esac
   mkdir -p "$(dirname "$exclude")"
-  keep_out() { grep -qx "$1" "$exclude" 2>/dev/null || echo "$1" >> "$exclude"; }
+  keep_out() {
+    grep -qx "$1" "$exclude" 2>/dev/null && return
+    # A hand-edited exclude file may lack its last newline; don't glue the pattern onto that line.
+    [ -s "$exclude" ] && [ -n "$(tail -c1 "$exclude")" ] && echo >> "$exclude"
+    echo "$1" >> "$exclude"
+  }
   keep_out '/.work/'
   [ -f "$root/CLAUDE.md" ] && return 0
-  name="$(basename "$root")"
+  # The repository's name, not the folder's: a linked worktree's folder can be called anything.
+  common="$(cd "$root" && cd "$(git rev-parse --git-common-dir)" && pwd)"
+  if [ "$(basename "$common")" = .git ]; then name="$(basename "$(dirname "$common")")"; else name="$(basename "$root")"; fi
   src="$setup/projects/$name.md"
   # The clone can be days old (a cloud VM clones it once per build), so pull before giving up.
   [ -n "$setup" ] && [ ! -f "$src" ] && { git -C "$setup" pull -q --ff-only >/dev/null 2>&1 || true; }

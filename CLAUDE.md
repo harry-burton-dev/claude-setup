@@ -26,6 +26,8 @@ Write the minimum that solves the problem, with nothing speculative: no extra fe
 
 Turn each task into a check that can run, such as a test, a script or a command with expected output. Write the check first, and the task is done when it passes. Say which check you ran and what it printed. If something can't be checked, say so plainly.
 
+Before a PR opens, run the `jit:run` skill: it adds generated tests from a second, independent author on top of the checks you wrote first, and skips changes too small or low-risk to be worth it.
+
 ## Docs and scratch
 
 - Work runs through GSD. Its `.planning/` (roadmap, state, each phase's context and plan) is the project's plan and is committed with the work. One Linear issue is one GSD phase.

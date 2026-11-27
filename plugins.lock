@@ -25,3 +25,6 @@ outerpale-mem@claude-setup harry-burton-dev/claude-setup
 
 # outerpale-mem-global: global memory every session shares (OneDrive Claude/memory/_global/). Kept in this repository; leave it out to keep a machine's sessions without it.
 outerpale-mem-global@claude-setup harry-burton-dev/claude-setup
+
+# JiT: just-in-time catching tests before every PR, in every repository (docs/design/jit-testing.md). Kept in this repository.
+jit@claude-setup harry-burton-dev/claude-setup

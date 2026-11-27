@@ -12,7 +12,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|mcp__.+__sharepoint_(upload_file|update_file|delete_item|move_item|rename_item|copy_item|create_folder)",
         "hooks": [
           {
             "type": "command",
