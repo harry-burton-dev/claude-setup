@@ -19,6 +19,7 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 | User `CLAUDE.md` | `cloud/setup.sh`, through `install.sh` | Documented to load. Check it with `/context`, under Memory files |
 | Skills, agents, commands in `~/.claude` | `install.sh` | **Not confirmed by the docs.** The docs only promise skills from the repository's `.claude/` and from claude.ai. Check them in the first session |
 | Plugins in `plugins.lock` and the pasted script's `ENV_PLUGINS` | `install.sh`, through `claude plugin install` | Documented as a setup-script use, but the docs do not confirm they load. Check them in the first session |
+| Project `CLAUDE.md` (`./CLAUDE.md` in the checkout) | The `outerpale-startup` plugin's SessionStart hook, from `projects/<repo>.md` | Copied on the first session and kept out of git. That session gets the text from the hook, since the file only loads from the next session |
 | Plugins and connectors on claude.ai | Your account | They load in cloud sessions |
 | Project `CLAUDE.md`, `.claude/settings.json`, `.claude/skills/` | The repository | Loaded in a single-repository session, not in project threads |
 | User `settings.json` hooks | Nothing | **User-level hooks do not run in the cloud.** Put hooks in the repository |
