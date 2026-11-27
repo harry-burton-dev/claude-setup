@@ -16,7 +16,7 @@ Start the `outerpale-startup:companion` agent with the Agent tool, **in the back
 - what is being worked on, and the goal behind it, in Harry's words where possible
 - the decision or design at hand, and what has been chosen so far
 - the files to read, by absolute path
-- the repository name, the Linear scope if any, and this session's link
+- the repository name, the Linear scope if any, this session's link, and the current date and time (it has no clock of its own)
 
 ## Pass on its note
 

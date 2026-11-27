@@ -33,7 +33,7 @@ Then write the finding to `~/.companion/outbox/<finding-name>.md`. Quote every s
 
 ```
 ---
-date: "<ISO 8601 timestamp>"
+date: "<ISO 8601 timestamp from the brief>"
 session: "<the session link from the brief, or none>"
 repo: "<repository name, or none>"
 scope: "<Linear issue, project or initiative from the brief, or none>"
