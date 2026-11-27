@@ -10,6 +10,7 @@ In a cloud session, `~/.claude/claude-setup.status` says which tools this VM was
 - If there is more than one reading, say so; don't pick one silently.
 - If a simpler approach exists, say so, and push back when it is warranted.
 - If something is unclear, stop, name what is confusing, and ask.
+- Treat design talk as work in progress. Don't build, commit or record what I say as decided until I say to go ahead.
 
 ## 2. Simplicity first
 
@@ -37,3 +38,5 @@ Tell me when any of these happen:
 - A side task floods the conversation with output I won't use again.
 - Something should happen every time without being asked.
 - A second repository needs the same setup.
+
+When a rule, command or gotcha for this project emerges, suggest adding it to the project's `CLAUDE.md` with the `outerpale-startup:project-claude-md` skill. A project's `CLAUDE.md` is stored in claude-setup's `projects/`, never in its own repository.
