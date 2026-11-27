@@ -32,7 +32,7 @@ Six proposals are pending in OneDrive; the first nightly dream will consolidate 
 
 ## Not yet verified
 
-1. **Tracing, from a new session.** The endpoint was corrected to the Funnel host `harry-msi-server.tailfb071b.ts.net`; the `langfuse.` name doesn't resolve publicly. Check `/tmp/claude-code.log` for `[3P telemetry]`, then look for `claude_code.interaction` traces in Langfuse. `CLAUDE_CODE_ENABLE_TELEMETRY` isn't among the environment's variables; it reached this session's commands anyway, but add it explicitly if traces don't appear.
+1. **Tracing, from a new session.** Checked 27 Nov: the Funnel endpoint `harry-msi-server.tailfb071b.ts.net/api/public/otel/v1/traces` is reachable from a cloud VM (401 without credentials). But `CLAUDE_CODE_ENABLE_TELEMETRY` is set nowhere (not in the environment, settings or launcher settings), and Claude Code's docs say it is required, so nothing is exported. A session can't set it (`update_environment` refuses it as reserved): Harry adds `CLAUDE_CODE_ENABLE_TELEMETRY=1` to the Outer-Pale environment's variables in Settings. Then, in a new session, look for `claude_code.interaction` traces in Langfuse. `/tmp/claude-code.log` is no check in the cloud: it holds only the launcher header, because the session's debug output goes to stderr.
 2. **The first nightly dream (28 Nov, 03:42).** Look for `Claude/memory/*/dreams/2026-11-28.md` and `.committed` markers.
 3. **Whether the new plugins load in a fresh session:**
    - Magister's moment note;
