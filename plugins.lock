@@ -28,3 +28,7 @@ outerpale-mem-global@claude-setup harry-burton-dev/claude-setup
 
 # JiT: just-in-time catching tests before every PR, in every repository (docs/design/jit-testing.md). Kept in this repository.
 jit@claude-setup harry-burton-dev/claude-setup
+
+# Listed in this repository's marketplace but not installed everywhere. tests/test.sh fails on a marketplace
+# plugin that is neither installed above nor marked here, so a new plugin is never left out by accident.
+# not installed: send-to-todoist - a desktop-app mod; install it by hand where wanted
