@@ -1,0 +1,16 @@
+{
+  "epic": null,
+  "issue": null,
+  "desc": "Yes do that change instead",
+  "touched": [],
+  "noEpic": false,
+  "outOfScope": true,
+  "asked": true,
+  "events": [
+    {
+      "name": "not-outer-pale",
+      "at": "2026-11-27T12:09:00.744Z"
+    }
+  ],
+  "askedAt": 1288953
+}

@@ -59,7 +59,7 @@ grep -qx 'plugin install demo@market --scope user' "$work/claude.log" || fail "p
 ok "a listed plugin is installed through the claude CLI at user scope"
 
 if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/tests/test.sh" || fail "shellcheck"
+  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" || fail "shellcheck"
   ok "shellcheck clean"
 else
   printf 'skip: shellcheck not installed\n'
@@ -73,15 +73,18 @@ if [ "${1:-}" = "--vm" ]; then
     mkdir -p /tmp/bin
     printf "#!/usr/bin/env bash\necho \"\$*\" >> /tmp/claude.log\n" > /tmp/bin/claude
     chmod +x /tmp/bin/claude
-    sed -i "s|^ENV_PLUGINS=\"$|ENV_PLUGINS=\"envplug@m owner/m|" /opt/claude-setup/cloud/setup.sh
-    PATH="/tmp/bin:$PATH" SETUP_SRC=/opt/claude-setup bash /opt/claude-setup/cloud/setup.sh
+    # Cloud VMs have an older node ahead of /usr/local/bin on PATH (/opt/node22/bin). Stand one in.
+    mkdir -p /opt/oldnode/bin && cp /usr/bin/node /opt/oldnode/bin/node
+    ENV_PLUGINS="envplug@m owner/m" PATH="/tmp/bin:/opt/oldnode/bin:$PATH" bash /opt/claude-setup/cloud/setup.sh
     grep -qx "plugin install envplug@m --scope user" /tmp/claude.log
-    echo "vm: a plugin listed in the setup script was installed"
+    echo "vm: a plugin in ENV_PLUGINS was installed"
+    PATH="/opt/oldnode/bin:$PATH" node --version | grep -q "^v26\."
+    echo "vm: node 26 replaced the older node that comes first on PATH"
     cmp -s /opt/claude-setup/CLAUDE.md /root/.claude/CLAUDE.md
     grep -q "^claude-setup" /root/.claude/claude-setup.status
     grep -q "^warnings: none" /root/.claude/claude-setup.status
     command -v pnpm >/dev/null
-    shellcheck /opt/claude-setup/install.sh /opt/claude-setup/cloud/setup.sh /opt/claude-setup/tests/test.sh
+    shellcheck /opt/claude-setup/install.sh /opt/claude-setup/cloud/setup.sh /opt/claude-setup/cloud/bootstrap.sh /opt/claude-setup/tests/test.sh
     echo "vm: shellcheck clean, pnpm on PATH, no setup warnings"
     echo "vm: setup.sh ran as root and installed /root/.claude/CLAUDE.md"
   ' || fail "cloud/setup.sh in ubuntu:24.04"

@@ -6,10 +6,11 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 |---|---|
 | `CLAUDE.md` | The user instructions. Installed as `~/.claude/CLAUDE.md` |
 | `skills.lock` | Skills to install, each pinned to a commit. Empty for now |
-| `plugins.lock` | Plugins every machine gets, at user scope: EGM (Google's Elephant-Goldfish Model) for design docs, and `outerpale-devops`. A plugin for one project goes in `ENV_PLUGINS` in that environment's copy of `cloud/setup.sh`, never in the project repository |
+| `plugins.lock` | Plugins every machine gets, at user scope: EGM (Google's Elephant-Goldfish Model) for design docs, and `outerpale-devops`. A plugin for one project goes in `ENV_PLUGINS` in that environment's pasted `cloud/bootstrap.sh`, never in the project repository |
 | `agents/`, `commands/` | Copied into `~/.claude/` if present. None yet |
 | `install.sh` | Installs all of the above into `~/.claude`. Safe to run again |
-| `cloud/setup.sh` | The script to paste into a claude.ai cloud environment |
+| `cloud/bootstrap.sh` | The script to paste into a claude.ai cloud environment, once. It clones this repository and runs `cloud/setup.sh` |
+| `cloud/setup.sh` | What a cloud VM runs: tools, then `install.sh` |
 | `templates/repo/` | What each project repository should carry for itself |
 | `tests/test.sh` | The tests. `--vm` also runs `cloud/setup.sh` in a fresh `ubuntu:24.04` container |
 | `docs/cloud-environment.md` | The recommended cloud environment settings, and why |
@@ -17,7 +18,7 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 ## Use it
 
 - **PC or server:** `git clone https://github.com/harry-burton-dev/claude-setup ~/claude-setup && ~/claude-setup/install.sh`. Run `git pull && ./install.sh` to update.
-- **Cloud:** paste `cloud/setup.sh` into the environment's setup script field. See `docs/cloud-environment.md`.
+- **Cloud:** paste `cloud/bootstrap.sh` into the environment's setup script field, once. See `docs/cloud-environment.md`.
 
 ## What goes where
 
