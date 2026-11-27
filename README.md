@@ -15,6 +15,7 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 | `cloud/setup.sh` | What a cloud VM runs: tools, then `install.sh` |
 | `templates/repo/` | What each project repository should carry for itself |
 | `tests/test.sh` | The tests. `--vm` also runs `cloud/setup.sh` in a fresh `ubuntu:24.04` container |
+| `docs/workflow.md` | How the layers fit together, a session start to finish, known gaps, and what's next |
 | `docs/cloud-environment.md` | The recommended cloud environment settings, and why |
 
 ## Use it
