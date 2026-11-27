@@ -129,6 +129,48 @@ grep -q 'other has no other/CLAUDE.md' <<<"$out" || fail "the missing file did n
 grep -q 'projects/other.md' <<<"$out" || fail "hook did not say which file it looked for in other"
 ok "each repository gets its own project CLAUDE.md lookup, and the output names the repository"
 
+# A cloud VM keeps the claude-setup it was built from for about 7 days. On a VM (only cloud/setup.sh
+# writes the status file), the hook brings that clone up to main and reruns install.sh.
+commit() { git -C "$work/upstream" add -A && git -C "$work/upstream" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"; }
+git init -q -b main "$work/upstream"
+# shellcheck disable=SC2016  # $HOME is for the install.sh being written, not this shell
+printf 'echo ran >> "$HOME/installs"\n' > "$work/upstream/install.sh"
+commit one
+git clone -q "file://$work/upstream" "$work/vmsetup"
+commit two
+mkdir -p "$work/vmhome/.claude"
+printf '%s' "$work/vmsetup" > "$work/vmhome/.claude/claude-setup-dir"
+printf 'claude-setup %s, installed x\nwarnings: none\n' "$(git -C "$work/vmsetup" rev-parse --short HEAD)" > "$work/vmhome/.claude/claude-setup.status"
+vm() { (cd "$work/empty" && HOME="$work/vmhome" bash "$hook"); }
+out="$(vm)"
+[ "$(git -C "$work/vmsetup" rev-parse HEAD)" = "$(git -C "$work/upstream" rev-parse HEAD)" ] || fail "a VM's claude-setup behind main was not updated"
+[ "$(cat "$work/vmhome/installs")" = ran ] || fail "install.sh was not rerun after the update"
+grep -q "^claude-setup $(git -C "$work/upstream" rev-parse --short HEAD), updated" "$work/vmhome/.claude/claude-setup.status" || fail "the status file does not show the new commit"
+grep -q 'warnings: none' "$work/vmhome/.claude/claude-setup.status" || fail "the status file lost its other lines"
+grep -q 'updated .* → .*next session' <<<"$out" || fail "the update was not reported"
+ok "on a VM, a claude-setup clone behind main is updated, install.sh rerun and the status file updated"
+out="$(vm)"
+[ -z "$out" ] || fail "hook spoke when the VM's claude-setup is up to date"
+[ "$(wc -l < "$work/vmhome/installs")" = 1 ] || fail "install.sh reran with nothing new"
+ok "an up-to-date VM clone is left alone, silently"
+commit three
+mv "$work/vmhome/.claude/claude-setup.status" "$work/status.off"
+out="$(vm)"
+[ "$(git -C "$work/vmsetup" log -1 --format=%s)" = two ] || fail "a clone was reset on a machine with no status file"
+[ -z "$out" ] || fail "hook spoke about claude-setup on a machine with no status file"
+ok "without the status file (Harry's own machines) the claude-setup clone is never touched"
+mv "$work/status.off" "$work/vmhome/.claude/claude-setup.status"
+git -C "$work/vmsetup" remote set-url origin "file://$work/nowhere"
+out="$(vm)" || fail "hook failed when origin is unreachable"
+[ -z "$out" ] || fail "hook spoke when origin is unreachable"
+ok "an unreachable origin is skipped silently"
+git -C "$work/vmsetup" remote set-url origin "file://$work/upstream"
+printf 'exit 1\n' > "$work/upstream/install.sh"
+commit four
+out="$(vm)" || fail "hook failed when install.sh failed"
+grep -q 'WARNING.*install.sh failed' <<<"$out" || fail "a failed install.sh was not reported"
+ok "a failing install.sh is reported, and the hook still succeeds"
+
 # The suggestion hook: a correction, or a project command run three times, prompts Claude to offer
 # a one-line addition to the project CLAUDE.md. Silent otherwise.
 suggest="$repo/plugins/outerpale-startup/hooks/suggest.js"
