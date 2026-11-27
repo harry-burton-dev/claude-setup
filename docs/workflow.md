@@ -28,7 +28,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 1. **VM build (cloud only, about weekly):** the environment's pasted `cloud/bootstrap.sh` clones claude-setup `main` and runs `cloud/setup.sh`. Status in `~/.claude/claude-setup.status`.
 2. **Session start:** `outerpale-startup` puts `./CLAUDE.md` in place, or says it looked and asks to write one. `outerpale-devops` asks which Linear issue, project or initiative the session is for, or none.
 3. **Work:** by the contract below. One issue, one branch, one PR.
-4. **As rules emerge:** Claude suggests additions to the project `CLAUDE.md`; on a yes, the skill opens a PR to `projects/<repo>.md` here.
+4. **As rules emerge:** when you correct Claude, or a project command has been run three times, `outerpale-startup` prompts Claude to offer a one-line addition to the project `CLAUDE.md`; on a yes, the skill opens a PR to `projects/<repo>.md` here.
 5. **Changing the setup itself:** edit this repository, `tests/test.sh`, PR, merge. Claude may merge PRs in claude-setup when Harry has said so in that session.
 
 ## Cloud environments
@@ -42,7 +42,6 @@ A pushed change reaches an environment on its next VM build: within 7 days, or a
 
 ## Known gaps
 
-- Mid-session suggestions for the project `CLAUDE.md` depend on Claude following one line in the generic `CLAUDE.md`. A hook is agreed but not built.
 - Unconfirmed: whether a file the setup script writes into a checkout survives a cached VM start (the marker test).
 - Langfuse needs keys that cloud sessions don't have, so cloud sessions send no traces.
 - EGM's own reviews are thrown away with `.work/`; nothing keeps a record of them yet.

@@ -95,6 +95,29 @@ out="$(cd "$work" && HOME="$work/hookhome" bash "$hook")"
 [ -z "$out" ] || fail "hook spoke outside a git repository"
 ok "hook is silent outside a git repository"
 
+# The suggestion hook: a correction, or a project command run three times, prompts Claude to offer
+# a one-line addition to the project CLAUDE.md. Silent otherwise.
+suggest="$repo/plugins/outerpale-startup/hooks/suggest.js"
+sug() { (cd "$work/demo" && HOME="$work/sughome" node "$suggest" "$1" <<<"$2"); }
+out="$(sug prompt '{"session_id":"q1","prompt":"No, we always use pnpm here, not npm"}')"
+grep -q 'corrected' <<<"$out" || fail "a correction did not prompt a suggestion"
+grep -q 'project-claude-md' <<<"$out" || fail "the suggestion did not name the skill"
+[ -z "$(sug prompt '{"session_id":"q1","prompt":"now add a footer link"}')" ] || fail "an ordinary prompt prompted a suggestion"
+[ -z "$(sug prompt '{"session_id":"q1","prompt":"<task-notification>no, wrong</task-notification>"}')" ] || fail "a notification counted as a correction"
+ok "a correction prompts a CLAUDE.md suggestion; ordinary prompts and notifications don't"
+bash_call='{"session_id":"q2","tool_name":"Bash","tool_input":{"command":"cd /x && pnpm test --filter web"}}'
+for _ in 1 2; do [ -z "$(sug bash "$bash_call")" ] || fail "spoke before the third run"; done
+out="$(sug bash "$bash_call")"
+grep -q 'pnpm test --filter web' <<<"$out" || fail "a third run of a command did not prompt a suggestion"
+[ -z "$(sug bash "$bash_call")" ] || fail "the same command was suggested twice"
+for _ in 1 2 3; do o="$(sug bash '{"session_id":"q2","tool_name":"Bash","tool_input":{"command":"git status"}}')"; done
+[ -z "$o" ] || fail "an everyday command was suggested"
+# shellcheck disable=SC2016 # literal backticks, as a CLAUDE.md writes a command
+printf 'Run `make check` before pushing.\n' >> "$work/demo/CLAUDE.md"
+for _ in 1 2 3; do o="$(sug bash '{"session_id":"q3","tool_name":"Bash","tool_input":{"command":"make check"}}')"; done
+[ -z "$o" ] || fail "a command already in CLAUDE.md was suggested"
+ok "a project command run three times is suggested once; everyday and known commands aren't"
+
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" || fail "shellcheck"
   ok "shellcheck clean"
