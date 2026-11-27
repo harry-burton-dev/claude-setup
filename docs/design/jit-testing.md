@@ -1,12 +1,16 @@
 # JiT catching tests, in every repository
 
-Status: **draft for Harry's review. Nothing here is built.**
+Status: **built** (plugin `jit` 0.1.0). Sections 4.3 to 4.5 describe what was built.
+
+Where the build differs from this text, the code wins. `plugins/jit/scripts/jit.js` holds the exact rules.
 
 Decided by Harry on 27 Nov 2026:
 
 - JiT runs **in addition to** write-the-check-first; it doesn't replace it.
 - It runs **once before each PR**.
 - It applies to all his code, and the whole process lives in claude-setup.
+- Changes not worth testing are skipped: tiny changes, low-risk or low-impact ones, and ones already well tested and reviewed.
+- Tests that pin the change land without asking. What matters is that tests run.
 
 Everything else here is a proposal.
 
@@ -136,9 +140,13 @@ Layer 1 for claude-setup is the hook contract check: it runs every hook in `plug
 
 ### 4.3 The procedure (`jit:run`)
 
-1. **Scope.**
+1. **Scope and triage.**
    - R is HEAD and Parent(R) is `git merge-base HEAD origin/<default>`.
-   - If the diff touches only `skip` paths, write a "skipped: no code" report and stop.
+   - `jit.js triage` skips the run, and writes the report, in these cases:
+     - only `skip` paths changed (docs, `.planning/` and so on)
+     - the change is tiny: at most 5 lines in one file
+     - there are no changes, or no parent (a root commit)
+   - Otherwise Claude judges whether a run is worth it. It records a skip with `jit.js skip --reason` for a low-risk or low-impact change, or one already well tested and reviewed.
    - In a cloud session that started in a parent folder holding several repositories, run once for each repository whose branch has changes, and name the repository in each report.
 2. **Layer 1.** If there is an invariants script, run it on R. Any failure is reported as a catch with no LLM involved.
 3. **Scavenge the oracle.** Collect, cut at R:
@@ -157,19 +165,20 @@ Layer 1 for claude-setup is the hook contract check: it runs every hook in `plug
 5. **Run** (`jit.js`).
    - Each test runs at R and at Parent(R), each in its own `git worktree` under `.work/jit/<sha>/`, with a temporary `HOME`.
    - The VM run happens only when the diff touches `vm-paths`.
-   - Each failing test is rerun 3 times, and a flaky one is dropped.
-6. **Classify** with the decision table in section 2.
+   - A test reads as "no build" (the code isn't there yet) when a file in its `subject` is missing, its `exists` check fails, or it exits 77.
+   - A candidate catch is rerun twice more on R, and dropped if either rerun passes (flaky).
+6. **Classify** with the decision table in section 2, with one change: a test that passes on both revisions is dropped, not landed. It says nothing about this change and would only grow the suite.
 7. **Assess** each test that fails on R.
    - Rules first: the test errored before its assertion, needs a network host it can't reach, depends on connectors (which `claude -p` lacks), or writes under `~/.claude/`.
    - Then `jit:assessor`, a single judge rather than an ensemble at this scale, with the step-3 intent text.
    - Only "should fail" verdicts are reported.
 8. **Report** to `.work/jit/<sha>/report.json` and as a short note at the end of Claude's reply, which matches "notified, never interrupted".
    - **Catches:** each with the test, its outcomes on the parent and on R, and the risk it checks, asked as "Was this change expected?"
-   - **Hardening tests offered:** the "land" rows.
-9. **Land on Harry's word.**
-   - A confirmed catch gets fixed on the branch. Its test is landed with the fix, as a regression test.
-   - Hardening tests that Harry accepts are copied into the repository's test directory and committed in the same PR.
-   - Nothing lands without his OK. Unlanded tests stay in `.work/`, which is never committed.
+   - **Tests landed:** the "land" rows.
+9. **Land automatically.**
+   - `jit.js finish` copies the "land" tests into the repository's working tree, and they are committed in the PR. Make sure the repository's own test command runs them.
+   - A confirmed catch gets fixed on the branch, and its test is committed with the fix as a regression test.
+   - Everything else stays in `.work/`, which is never committed.
 
 ### 4.4 The trigger: before each PR, in every repository
 
@@ -179,7 +188,7 @@ The flow today goes GSD verify, then `intent-reviewer`, then the PR. `outerpale-
 - It checks for `.work/jit/<head-sha>/report.json`. If the report is missing, it denies once, with "run the `jit:run` skill first, then open the PR".
 - It gates on JiT **having run**, never on what it found. A run with catches still lets the PR open, and the catches go in the PR body. That keeps [1]'s "trigger, not verdict" while making sure the step happens every time.
 - It fails open on any internal error, like the outerpale-devops hooks.
-- Draft PRs that hold only docs, such as this one, are covered by the "skipped: no code" report.
+- Docs-only and tiny changes are covered by the skip report that triage writes.
 
 This composes with outerpale-devops' own guard on the same tool. Both have to allow the call, and each says why it refused.
 
@@ -223,13 +232,19 @@ The checks, written before any implementation:
 3. **A prospective trial.** The backtest has too few bugs to measure precision, so it is a smoke test. Real acceptance is the next 20 PRs across all repositories, each report logged as confirmed or false alarm in `.work/jit/trial.tsv`, and copied to repository memory so it survives the VM. The 0.8 precision target applies there.
 4. **Evals** in `tests/evals/jit/`: canned diffs with known intent, where the assessor has to separate the paper's two weed-out examples (§6.2 and §6.3): a "the title said it all" false catch, and a failure that breaks an assumption a code comment states.
 
-## 7. Build order (each its own PR, on Harry's go)
+## 7. Build order (as planned; all built in one PR, because this session can push to only one branch)
 
 1. Layer 1 for claude-setup: the hook contract check in `tests/test.sh`. It is small, needs no LLM, and catches B1 and B2.
 2. `jit.js` (worktrees, runs on both revisions, classification, report) and its tests.
 3. The generator and assessor agents, the `jit:run` skill, the evals, and the backtest.
 4. The pre-PR hook, the `plugins.lock` entry, and the `CLAUDE.md` §4 sentence. JiT goes live everywhere at this step.
 5. The 20-PR trial. Then Harry decides whether to keep it, tune it or drop it.
+
+## 7a. Not built yet
+
+- **`vm-paths`** in the `JiT:` line: the slow VM run when a diff touches `cloud/`. Only `invariants` and `skip` are read today.
+- **The assessor evals** (6.4). The assessor is checked only by the live backtest so far.
+- **Root commits.** A repository's first commit has no parent to compare with, so triage skips it. This is why B4 can't be scored.
 
 ## 8. Open questions
 
