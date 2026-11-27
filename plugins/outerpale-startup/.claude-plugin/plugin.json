@@ -1,6 +1,6 @@
 {
   "name": "outerpale-startup",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Session start work for every repository: fetches its project CLAUDE.md from claude-setup's projects/, and a skill that writes one with you to Anthropic's guidance.",
   "author": {
     "name": "Harry"
