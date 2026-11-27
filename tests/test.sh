@@ -58,8 +58,38 @@ grep -qx 'plugin marketplace add owner/market-repo' "$work/claude.log" || fail "
 grep -qx 'plugin install demo@market --scope user' "$work/claude.log" || fail "plugin not installed"
 ok "a listed plugin is installed through the claude CLI at user scope"
 
+# install.sh records where this repository is, so the outerpale-startup hook can find projects/.
+[ "$(cat "$work/home/.claude/claude-setup-dir")" = "$repo" ] || fail "claude-setup-dir not recorded"
+ok "install.sh records where claude-setup is"
+
+# The outerpale-startup SessionStart hook fetches a repository's project CLAUDE.md.
+hook="$repo/plugins/outerpale-startup/hooks/session-start.sh"
+mkdir -p "$work/hookhome/.claude" "$work/store/projects"
+printf '%s' "$work/store" > "$work/hookhome/.claude/claude-setup-dir"
+printf '# demo project\n' > "$work/store/projects/demo.md"
+git init -q "$work/demo"
+out="$(cd "$work/demo" && HOME="$work/hookhome" bash "$hook")"
+cmp -s "$work/store/projects/demo.md" "$work/demo/CLAUDE.md" || fail "hook did not copy projects/demo.md"
+grep -qx '/CLAUDE.md' "$work/demo/.git/info/exclude" || fail "hook did not exclude CLAUDE.md from git"
+[ -z "$(git -C "$work/demo" status --porcelain)" ] || fail "fetched CLAUDE.md shows in git status"
+grep -q '# demo project' <<<"$out" || fail "hook did not hand the fetched file to Claude"
+ok "hook copies projects/<repo>.md to ./CLAUDE.md, kept out of git"
+out="$(cd "$work/demo" && HOME="$work/hookhome" bash "$hook")"
+[ -z "$out" ] || fail "hook spoke when ./CLAUDE.md already exists"
+[ "$(grep -c '/CLAUDE.md' "$work/demo/.git/info/exclude")" = 1 ] || fail "exclude line repeated"
+ok "hook leaves an existing ./CLAUDE.md alone"
+git init -q "$work/fresh"
+out="$(cd "$work/fresh" && HOME="$work/hookhome" bash "$hook")"
+[ ! -e "$work/fresh/CLAUDE.md" ] || fail "hook wrote a CLAUDE.md nobody has written"
+grep -q 'projects/fresh.md' <<<"$out" || fail "hook did not say which file it looked for"
+grep -q 'AskUserQuestion' <<<"$out" || fail "hook did not ask to write the missing file"
+ok "a missing project file is reported, with a question to write it"
+out="$(cd "$work" && HOME="$work/hookhome" bash "$hook")"
+[ -z "$out" ] || fail "hook spoke outside a git repository"
+ok "hook is silent outside a git repository"
+
 if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" || fail "shellcheck"
+  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" || fail "shellcheck"
   ok "shellcheck clean"
 else
   printf 'skip: shellcheck not installed\n'

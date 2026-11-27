@@ -7,6 +7,8 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 | `CLAUDE.md` | The user instructions. Installed as `~/.claude/CLAUDE.md` |
 | `skills.lock` | Skills to install, each pinned to a commit. Empty for now |
 | `plugins.lock` | Plugins every machine gets, at user scope: EGM (Google's Elephant-Goldfish Model) for design docs, and `outerpale-devops`. A plugin for one project goes in `ENV_PLUGINS` in that environment's pasted `cloud/bootstrap.sh`, never in the project repository |
+| `plugins/outerpale-startup/` | A plugin, from this repository's own marketplace (`.claude-plugin/marketplace.json`). At session start it copies `projects/<repo>.md` to the repository's `./CLAUDE.md`, kept out of git, or asks to write one with its `project-claude-md` skill |
+| `projects/` | Each project's `CLAUDE.md`, as `<repo-name>.md`. Project repositories never hold their own |
 | `agents/`, `commands/` | Copied into `~/.claude/` if present. None yet |
 | `install.sh` | Installs all of the above into `~/.claude`. Safe to run again |
 | `cloud/bootstrap.sh` | The script to paste into a claude.ai cloud environment, once. It clones this repository and runs `cloud/setup.sh` |
@@ -23,7 +25,8 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 ## What goes where
 
 - **Here:** only what every project and every machine should have.
-- **In a project repository:** anything about one project. That means its `CLAUDE.md`, its `.claude/settings.json` (hooks and permissions, never plugins), its `.claude/skills/`, and how to run and test it. Cloud sessions load those straight from the repository.
+- **In `projects/<repo-name>.md` here:** a project's `CLAUDE.md`. The `outerpale-startup` plugin puts it in place at session start.
+- **In a project repository:** anything else about one project. That means its `.claude/settings.json` (hooks and permissions, never plugins), its `.claude/skills/`, and how to run and test it. Cloud sessions load those straight from the repository.
 - **On claude.ai:** account-wide plugins and connectors. Don't repeat them here.
 
 ## Change it

@@ -1,0 +1,13 @@
+{
+  "name": "claude-setup",
+  "owner": {
+    "name": "Harry"
+  },
+  "plugins": [
+    {
+      "name": "outerpale-startup",
+      "source": "./plugins/outerpale-startup",
+      "description": "Session start work for every repository: fetches its project CLAUDE.md from claude-setup, and a skill to write one."
+    }
+  ]
+}

@@ -38,3 +38,5 @@ Tell me when any of these happen:
 - A side task floods the conversation with output I won't use again.
 - Something should happen every time without being asked.
 - A second repository needs the same setup.
+
+When a rule, command or gotcha for this project emerges, suggest adding it to the project's `CLAUDE.md` with the `outerpale-startup:project-claude-md` skill. A project's `CLAUDE.md` is stored in claude-setup's `projects/`, never in its own repository.
