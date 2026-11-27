@@ -12,7 +12,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 |---|---|---|---|
 | Account | claude.ai plugins and connectors | Every session, everywhere | Linear, GitHub, Google, Sentry, Todoist connectors; general plugins (`engineering`, `code-review`, …) |
 | Machine | `install.sh` here, run by hand on the PC and server, and by `cloud/bootstrap.sh` → `cloud/setup.sh` on each cloud VM build | Once per install or VM build | `~/.claude/CLAUDE.md` (generic rules), the plugins in `plugins.lock`, Node 26 and tools on cloud VMs |
-| Session | The `outerpale-startup` plugin's SessionStart hook | Every session start | The repository's project `CLAUDE.md`, copied from `projects/<repo>.md` |
+| Session | The `outerpale-startup` plugin's SessionStart hook | Every session start | The repository's project `CLAUDE.md`, copied from `projects/<repo>.md`, and `.work/` kept out of git |
 | Project | `projects/<repo>.md` here | Loaded as `./CLAUDE.md` | That project's commands, rules and gotchas |
 
 ## Plugins every machine installs (`plugins.lock`)
@@ -20,14 +20,14 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 | Plugin | From | Does |
 |---|---|---|
 | `egm` | google/elephant-goldfish-model | Design docs: `/egm:egm-brainstorm` → `/egm:egm-draft` → `/egm:egm-review`, plus drift reports against the code. Vanilla, no templates of Harry's own |
-| `outerpale-devops` | harry-burton-dev/outerpale-devops | Ties threads to Linear epics and issues in the Outer-Pale workspace only; the epic question at the start of a thread; `epics/` and `masters/` folder rules; Langfuse traces |
+| `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only, Langfuse traces. The contract below needs 0.5.0 or later |
 | `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance |
 
 ## A session, start to finish
 
 1. **VM build (cloud only, about weekly):** the environment's pasted `cloud/bootstrap.sh` clones claude-setup `main` and runs `cloud/setup.sh`. Status in `~/.claude/claude-setup.status`.
-2. **Session start:** `outerpale-startup` puts `./CLAUDE.md` in place, or says it looked and asks to write one. `outerpale-devops` asks whether the thread is an epic, "no epic", or "not Outer-Pale work".
-3. **Work:** on a branch, with a pull request. Design work goes through EGM. Linear issues are started and closed with `outerpale-devops:start-issue` and `close-issue`.
+2. **Session start:** `outerpale-startup` puts `./CLAUDE.md` in place, or says it looked and asks to write one. `outerpale-devops` asks which Linear issue, project or initiative the session is for, or none.
+3. **Work:** by the contract below. One issue, one branch, one PR.
 4. **As rules emerge:** Claude suggests additions to the project `CLAUDE.md`; on a yes, the skill opens a PR to `projects/<repo>.md` here.
 5. **Changing the setup itself:** edit this repository, `tests/test.sh`, PR, merge. Claude may merge PRs in claude-setup when Harry has said so in that session.
 
@@ -45,15 +45,21 @@ A pushed change reaches an environment on its next VM build: within 7 days, or a
 - Mid-session suggestions for the project `CLAUDE.md` depend on Claude following one line in the generic `CLAUDE.md`. A hook is agreed but not built.
 - Unconfirmed: whether a file the setup script writes into a checkout survives a cached VM start (the marker test).
 - Langfuse needs keys that cloud sessions don't have, so cloud sessions send no traces.
+- EGM's own reviews are thrown away with `.work/`; nothing keeps a record of them yet.
 
-## Next: Linear in the wider workflow
+## Project management in Linear
 
-`outerpale-devops` works, but on its own terms. Where it doesn't yet fit the rest:
+Linear is the record of what is being done. Initiative → project → issue; every PR belongs to one issue, and an issue has one PR.
 
-| Gap | Today | Fit with the rule above |
-|---|---|---|
-| Project files | It wants `CLAUDE.md`, `.claude/settings.json` and a `.gitignore` line committed in the project | Its `CLAUDE.md` content belongs in `projects/<repo>.md`; `.linear-link/` can go in `.git/info/exclude` at session start |
-| Where `epics/` and `masters/` live | In the project's git repository | Decide: in the code repository, or in claude-setup alongside `projects/` |
-| Design docs | EGM writes to the working folder | Point EGM at the current epic's folder with its `EGM artifact directory:` line |
-| Pull requests | Session branches are `claude/…`; nothing links a PR to its issue | Put the issue ID (`OUT-123`) in the PR title or body so Linear links them, and close the issue when the PR merges |
-| Telemetry | Langfuse keys only on the PC | Keys through the environment's secrets, if cloud traces are wanted |
+| Session | Works on | Produces | Linked in Linear by |
+|---|---|---|---|
+| Design | A project or initiative, through its "Design: …" issue | A design doc in `docs/design/<slug>.md` (EGM's working files in `.work/egm/`) | The design issue's PR, and a link on the project |
+| Review and breakdown | A project | The project's issues, each with its implementation plan in the description (`outerpale-devops:break-down`) | The issues themselves |
+| Build | One issue | One PR, titled `OUT-123: …` with `Fixes OUT-123` in the body | Linear's GitHub integration, from the ID |
+| Other | None | Anything | Nothing |
+
+- **Status sync is Linear's.** The GitHub integration links a PR from the issue ID and moves the issue when the PR merges. Claude moves an issue to In Progress when a session starts on it (`start-issue`), and never sets Done by hand.
+- **A builder finds everything from its issue:** the plan in the description, the design doc through its link.
+- **Enforced:** `outerpale-devops` refuses a PR without the session's issue ID, or, in a project or initiative session, without any issue ID.
+- **In the repository:** only code and `docs/design/`. Scratch, plans and reviews go in `.work/`, which never reaches git.
+- **Not designed yet:** the issue builder, and orchestration of agents across a project's issues. This contract is what they will hand out and collect.
