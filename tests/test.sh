@@ -112,11 +112,54 @@ grep -q 'pnpm test --filter web' <<<"$out" || fail "a third run of a command did
 [ -z "$(sug bash "$bash_call")" ] || fail "the same command was suggested twice"
 for _ in 1 2 3; do o="$(sug bash '{"session_id":"q2","tool_name":"Bash","tool_input":{"command":"git status"}}')"; done
 [ -z "$o" ] || fail "an everyday command was suggested"
+for _ in 1 2 3; do o="$(sug bash '{"session_id":"q2","tool_name":"Bash","tool_input":{"command":"python3 - <<EOF\nprint(1)\nEOF"}}')"; done
+[ -z "$o" ] || fail "an inline script was suggested as a project command"
 # shellcheck disable=SC2016 # literal backticks, as a CLAUDE.md writes a command
 printf 'Run `make check` before pushing.\n' >> "$work/demo/CLAUDE.md"
 for _ in 1 2 3; do o="$(sug bash '{"session_id":"q3","tool_name":"Bash","tool_input":{"command":"make check"}}')"; done
 [ -z "$o" ] || fail "a command already in CLAUDE.md was suggested"
 ok "a project command run three times is suggested once; everyday and known commands aren't"
+for p in 'no thats okay' 'No, that'"'"'s fine' 'dont worry about the size limit, always onedrive' 'actually let'"'"'s add a footer'; do
+  [ -z "$(sug prompt "{\"session_id\":\"q4\",\"prompt\":\"$p\"}")" ] || fail "\"$p\" counted as a correction"
+done
+for p in 'That'"'"'s wrong, use the v2 endpoint' 'I told you the tests live in spec/' 'no, you keep forgetting the lockfile'; do
+  grep -q 'corrected' <<<"$(sug prompt "{\"session_id\":\"q4\",\"prompt\":\"$p\"}")" || fail "\"$p\" was not seen as a correction"
+done
+ok "agreement and ordinary instructions are not corrections; clear corrections are"
+
+# The companion: design and decision moments prompt Claude to consider it, in the background.
+out="$(sug prompt '{"session_id":"c1","prompt":"I think we should design the settings page as a two-column layout"}')"
+grep -q 'outerpale-startup:companion' <<<"$out" || fail "a design moment did not mention the companion"
+grep -q 'background' <<<"$out" || fail "the companion was not to run in the background"
+[ -z "$(sug prompt '{"session_id":"c1","prompt":"run the tests"}')" ] || fail "an ordinary prompt mentioned the companion"
+ok "a design or decision moment suggests the companion, in the background; ordinary prompts don't"
+
+# The companion writes only to .work/ and its outbox, and runs no shell commands.
+guard() { (cd "$work/demo" && HOME="$work/sughome" node "$suggest" guard <<<"$1"); }
+cw() { printf '{"agent_type":"outerpale-startup:companion","cwd":"%s","tool_name":"%s","tool_input":{"file_path":"%s","command":"ls"}}' "$work/demo" "$1" "$2"; }
+grep -q '"deny"' <<<"$(guard "$(cw Write "$work/demo/src/app.ts")")" || fail "the companion could write into the code"
+grep -q '"deny"' <<<"$(guard "$(cw Bash '')")" || fail "the companion could run a shell command"
+[ -z "$(guard "$(cw Write "$work/demo/.work/alt/settings-v2.html")")" ] || fail "the companion could not write into .work/"
+[ -z "$(guard "$(cw Write "$work/sughome/.companion/outbox/2026-11-27-x.md")")" ] || fail "the companion could not write its outbox"
+[ -z "$(guard "{\"cwd\":\"$work/demo\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$work/demo/src/app.ts\"}}")" ] || fail "the main session was restricted"
+ok "the companion writes only to .work/ and its outbox, and runs no shell; the main session is unaffected"
+
+# Unsent findings from an earlier session are flagged at session start.
+mkdir -p "$work/hookhome/.companion/outbox" && touch "$work/hookhome/.companion/outbox/2026-11-27-a.md"
+out="$(cd "$work/committed" && HOME="$work/hookhome" bash "$hook")"
+grep -q '1 companion finding' <<<"$out" || fail "an unsent finding was not flagged at session start"
+out="$(cd "$work" && HOME="$work/hookhome" bash "$hook")"
+grep -q '1 companion finding' <<<"$out" || fail "an unsent finding was not flagged outside a git repository"
+rm "$work/hookhome/.companion/outbox/2026-11-27-a.md"
+[ -z "$(cd "$work/committed" && HOME="$work/hookhome" bash "$hook")" ] || fail "an empty outbox was mentioned"
+ok "unsent companion findings are flagged at session start, wherever the session is"
+mkdir -p "$work/sughome/.companion/outbox" && touch "$work/sughome/.companion/outbox/2026-11-27-b.md"
+up() { printf '{"tool_name":"mcp__Microsoft_365__sharepoint_upload_file","tool_input":{"filename":"%s"},"tool_response":"%s"}' "$1" "$2"; }
+(cd "$work/demo" && HOME="$work/sughome" node "$suggest" uploaded <<<"$(up 2026-11-27-b.md 'Error: rate limited')")
+[ -f "$work/sughome/.companion/outbox/2026-11-27-b.md" ] || fail "a failed upload removed the outbox file"
+(cd "$work/demo" && HOME="$work/sughome" node "$suggest" uploaded <<<"$(up 2026-11-27-b.md 'File uploaded. webUrl: https://x')")
+[ ! -e "$work/sughome/.companion/outbox/2026-11-27-b.md" ] || fail "a successful upload left the outbox file"
+ok "a successful OneDrive upload clears its outbox file; a failed one keeps it"
 
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" || fail "shellcheck"
