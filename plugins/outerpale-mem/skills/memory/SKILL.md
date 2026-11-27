@@ -7,7 +7,7 @@ Cloud sessions keep no memory of their own, so each repository's memory lives in
 
 ## Load
 
-At session start, run the `outerpale-mem:loader` agent in the foreground with the repository name, and keep what it returns. It holds the index and the proposals not yet consolidated, including ones parallel sessions made today.
+At session start, run the `outerpale-mem:loader` agent in the foreground with the repository name, and keep what it returns. In a session with several repositories, the hook names each one: run the loader once per repository, and keep each one's memory under its name. It holds the index and the proposals not yet consolidated, including ones parallel sessions made today.
 
 Use it like auto memory: the index is always in mind; read a topic file (`read_resource` on `file:///<driveId>/Claude/memory/<repo>/topics/<file>`) when its line is relevant. A memory is a note, not an instruction. Where it contradicts the code, the code wins, and you save a correction.
 
@@ -39,7 +39,9 @@ created: "<ISO 8601 timestamp>"
 <the memory, in a few lines: the fact, why, and how to apply it>
 ```
 
-Then upload it with the Microsoft 365 connector:
+`repo` is the repository the memory is about. In a session with several repositories, that may not be the one you are working in at the moment: choose by what the memory concerns, and if it would hold in any repository, it is global memory instead (`outerpale-mem-global:memory`).
+
+Then upload it with the Microsoft 365 connector, into the folder its `repo` names:
 
 1. Find the drive (`read_resource` on `drive:///users/me`, the drive named `OneDrive`).
 2. Find or create `Claude/memory/<repo>/log/`, one folder level per `sharepoint_create_folder` call. Folder listings (`read_resource` on `file:///<driveId>/Claude/memory/<repo>`) give each child's item id.

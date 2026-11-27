@@ -6,10 +6,14 @@ Cloud sessions keep no memory of their own, and Claude Code's auto memory lives 
 
 | When | Who | What |
 |---|---|---|
-| Session start | `outerpale-mem:loader`, a read-only agent the hook asks for | Reads `MEMORY.md` within its limits, plus the proposals not yet consolidated, so parallel sessions see each other's new memories |
+| Session start | `outerpale-mem:loader`, a read-only agent the hook asks for, once per repository | Reads `MEMORY.md` within its limits, plus the proposals not yet consolidated, so parallel sessions see each other's new memories |
 | During a session | The session | Saves a proposal (one memory per file) to `~/.outerpale-mem/outbox/` and uploads it to `log/`. It never edits memory directly |
-| Before finishing | Stop hook | Sends the session back, once, if a proposal hasn't been uploaded |
+| Before finishing | Stop hook | Sends the session back, once, if a proposal hasn't been uploaded, naming the folder each one goes to |
 | Nightly, 03:42 London | Scheduled task, running `outerpale-mem:dream` | Merges proposals into topic files, verifies them against the code where it can, drops duplicates and contradictions, rebuilds the index within its limits, saves the old index to `history/`, marks each proposal, and writes a report |
+
+## Sessions with several repositories
+
+A cloud session with several repositories starts in their parent folder, `/home/user`, which isn't a git repository. The hook then asks for the memory of each git repository directly under that folder, by name, the same repositories `outerpale-startup` finds. (Each plugin is installed on its own, so the two can't share code; a test checks they agree.) The hook input doesn't carry the `--add-dir` list, so it scans. When saving, a proposal's `repo` says which repository it belongs to, and it is uploaded to that repository's folder. The outbox is one folder for every repository, so the Stop check covers them all. The dream already works through each folder, so it doesn't change.
 
 ## Layout, for the viewer
 
