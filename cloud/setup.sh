@@ -32,11 +32,19 @@ fi
 # 2. Node $NODE_MAJOR as the default node, with pnpm through corepack.
 if node --version 2>/dev/null | grep -q "^v$NODE_MAJOR\."; then
   log "node $(node --version) already present"
-elif npm install -g -s n >/dev/null 2>&1 && n -q "$NODE_MAJOR" >/dev/null 2>&1; then
-  hash -r
-  log "node $(node --version) installed"
 else
-  warn "node $NODE_MAJOR not installed (is nodejs.org allowed?); keeping $(node --version 2>/dev/null || echo none)"
+  # Claude cloud VMs put /opt/node22/bin ahead of /usr/local/bin on PATH, so n replaces the node there.
+  n_prefix=/usr/local
+  [ -d /opt/node22/bin ] && n_prefix=/opt/node22
+  if npm install -g -s n >/dev/null 2>&1; then
+    N_PREFIX="$n_prefix" n -q "$NODE_MAJOR" >/dev/null 2>&1 || true
+  fi
+  hash -r
+  if node --version 2>/dev/null | grep -q "^v$NODE_MAJOR\."; then
+    log "node $(node --version) installed in $n_prefix"
+  else
+    warn "node $(node --version 2>/dev/null || echo none) on PATH, not v$NODE_MAJOR (is nodejs.org allowed? which -a node: $(which -a node | tr '\n' ' '))"
+  fi
 fi
 # Node 25 and later no longer bundle corepack, so it is installed from npm first.
 if { command -v corepack >/dev/null 2>&1 || npm install -g -s corepack >/dev/null 2>&1; } && corepack enable >/dev/null 2>&1; then

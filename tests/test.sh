@@ -74,7 +74,14 @@ if [ "${1:-}" = "--vm" ]; then
     printf "#!/usr/bin/env bash\necho \"\$*\" >> /tmp/claude.log\n" > /tmp/bin/claude
     chmod +x /tmp/bin/claude
     sed -i "s|^ENV_PLUGINS=\"$|ENV_PLUGINS=\"envplug@m owner/m|" /opt/claude-setup/cloud/setup.sh
+    # Like a Claude cloud VM: an older node in /opt/node22/bin, ahead of /usr/local/bin on PATH.
+    mkdir -p /opt/node22/bin && cp "$(command -v node)" /opt/node22/bin/node
+    export PATH="/opt/node22/bin:$PATH"
     PATH="/tmp/bin:$PATH" SETUP_SRC=/opt/claude-setup bash /opt/claude-setup/cloud/setup.sh
+    major="$(sed -n "s/^NODE_MAJOR=\"\(.*\)\"$/\1/p" /opt/claude-setup/cloud/setup.sh)"
+    hash -r
+    node --version | grep -q "^v$major\." || { echo "vm: node on PATH is $(node --version), not v$major"; exit 1; }
+    echo "vm: node on PATH is $(node --version), ahead of /opt/node22"
     grep -qx "plugin install envplug@m --scope user" /tmp/claude.log
     echo "vm: a plugin listed in the setup script was installed"
     cmp -s /opt/claude-setup/CLAUDE.md /root/.claude/CLAUDE.md
@@ -84,6 +91,13 @@ if [ "${1:-}" = "--vm" ]; then
     shellcheck /opt/claude-setup/install.sh /opt/claude-setup/cloud/setup.sh /opt/claude-setup/tests/test.sh
     echo "vm: shellcheck clean, pnpm on PATH, no setup warnings"
     echo "vm: setup.sh ran as root and installed /root/.claude/CLAUDE.md"
+    # The guard: a node that still shadows the new one after the install is a warning, not a success.
+    mkdir -p /tmp/oldnode
+    printf "#!/bin/sh\necho v22.0.0\n" > /tmp/oldnode/node
+    chmod +x /tmp/oldnode/node
+    PATH="/tmp/oldnode:/tmp/bin:$PATH" SETUP_SRC=/opt/claude-setup bash /opt/claude-setup/cloud/setup.sh > /tmp/guard.log 2>&1 || true
+    grep -q "^warning: node v22.0.0 on PATH, not v$major" /root/.claude/claude-setup.status || { cat /tmp/guard.log; exit 1; }
+    echo "vm: a node that is not v$major after the install is a warning"
   ' || fail "cloud/setup.sh in ubuntu:24.04"
   ok "cloud/setup.sh works in a fresh ubuntu:24.04 container"
 fi

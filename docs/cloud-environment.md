@@ -24,7 +24,7 @@ Checked against code.claude.com on 26 Nov 2026 (cloud-environments, claude-code-
 | User `settings.json` hooks | Nothing | **User-level hooks do not run in the cloud.** Put hooks in the repository |
 | Memory | Nothing | It does not carry between cloud sessions |
 | Docker and `docker compose` | Already on the VM | Containers and background services must be started again in every session |
-| Node 26, pnpm, jq, shellcheck, ripgrep | `cloud/setup.sh` | Node 22 is already installed. The script installs 26 and puts corepack back, because Node 25 and later no longer bundle it |
+| Node 26, pnpm, jq, shellcheck, ripgrep | `cloud/setup.sh` | Node 22 is already installed in `/opt/node22`, which comes before `/usr/local/bin` on a session's PATH, so the script installs 26 over it there. If `node --version` still isn't 26 afterwards, the status file has a warning. The script also puts corepack back, because Node 25 and later no longer bundle it |
 
 ## Limits that shape how projects run in the cloud
 
