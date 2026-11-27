@@ -91,9 +91,33 @@ out="$(cd "$work/fresh" && HOME="$work/hookhome" bash "$hook")"
 grep -q 'projects/fresh.md' <<<"$out" || fail "hook did not say which file it looked for"
 grep -q 'AskUserQuestion' <<<"$out" || fail "hook did not ask to write the missing file"
 ok "a missing project file is reported, with a question to write it"
-out="$(cd "$work" && HOME="$work/hookhome" bash "$hook")"
+(cd "$work/demo" && HOME="$work/hookhome" bash "$hook") >/dev/null
+[ "$(grep -cx '/.work/' "$work/demo/.git/info/exclude")" = 1 ] || fail ".work/ exclude line repeated"
+git -C "$work/demo" check-ignore -q .work/x || fail ".work/x not ignored"
+ok "in a repository, .work/ is excluded exactly once after repeated runs"
+mkdir -p "$work/empty"
+out="$(cd "$work/empty" && HOME="$work/hookhome" bash "$hook")" || fail "hook failed in a folder with no repositories"
 [ -z "$out" ] || fail "hook spoke outside a git repository"
-ok "hook is silent outside a git repository"
+ok "hook is silent in a folder that is not, and holds no, git repository"
+
+# A cloud session with several repositories starts in their non-git parent folder. The hook
+# covers each one, as Claude Code loads each one's CLAUDE.md, and says which repository it means.
+mkdir -p "$work/multi"
+git init -q "$work/multi/demo" && git init -q "$work/multi/other"
+for _ in 1 2; do out="$(cd "$work/multi" && HOME="$work/hookhome" bash "$hook")"; [ -n "$out" ] || fail "hook silent with two repositories"; done
+for r in demo other; do
+  [ "$(grep -cx '/.work/' "$work/multi/$r/.git/info/exclude")" = 1 ] || fail ".work/ not excluded exactly once in $r"
+  git -C "$work/multi/$r" check-ignore -q .work/x || fail ".work/x not ignored in $r"
+done
+ok "with two repositories under the start folder, .work/ is excluded exactly once in each"
+cmp -s "$work/store/projects/demo.md" "$work/multi/demo/CLAUDE.md" || fail "projects/demo.md not copied into demo"
+[ ! -e "$work/multi/other/CLAUDE.md" ] || fail "a CLAUDE.md was written into other"
+[ ! -e "$work/multi/CLAUDE.md" ] || fail "a CLAUDE.md was written into the parent folder"
+out="$(rm "$work/multi/demo/CLAUDE.md" && cd "$work/multi" && HOME="$work/hookhome" bash "$hook")"
+grep -q 'to demo/CLAUDE.md' <<<"$out" || fail "the copy did not name its repository"
+grep -q 'other has no other/CLAUDE.md' <<<"$out" || fail "the missing file did not name its repository"
+grep -q 'projects/other.md' <<<"$out" || fail "hook did not say which file it looked for in other"
+ok "each repository gets its own project CLAUDE.md lookup, and the output names the repository"
 
 # The suggestion hook: a correction, or a project command run three times, prompts Claude to offer
 # a one-line addition to the project CLAUDE.md. Silent otherwise.
@@ -119,6 +143,15 @@ printf 'Run `make check` before pushing.\n' >> "$work/demo/CLAUDE.md"
 for _ in 1 2 3; do o="$(sug bash '{"session_id":"q3","tool_name":"Bash","tool_input":{"command":"make check"}}')"; done
 [ -z "$o" ] || fail "a command already in CLAUDE.md was suggested"
 ok "a project command run three times is suggested once; everyday and known commands aren't"
+# shellcheck disable=SC2016
+printf 'Run `make lint` first.\n' > "$work/multi/other/CLAUDE.md"
+msug() { (cd "$work/multi" && HOME="$work/sughome" node "$suggest" "$1" <<<"$2"); }
+for _ in 1 2 3; do o="$(msug bash '{"session_id":"q6","tool_name":"Bash","tool_input":{"command":"cd other && make lint"}}')"; done
+[ -z "$o" ] || fail "a command in one repository's CLAUDE.md was suggested in a multi-repository session"
+for _ in 1 2 3; do o="$(msug bash '{"session_id":"q6","tool_name":"Bash","tool_input":{"command":"cd demo && make build"}}')"; done
+grep -q 'repository it belongs to (demo, other)' <<<"$o" || fail "a multi-repository suggestion did not name the repositories"
+grep -q 'repository it belongs to (demo, other)' <<<"$(msug prompt '{"session_id":"q6","prompt":"No, we always use pnpm"}')" || fail "a multi-repository correction did not name the repositories"
+ok "with several repositories, suggestions check every CLAUDE.md and name the repositories"
 for p in 'no thats okay' 'No, that'"'"'s fine' 'dont worry about the size limit, always onedrive' 'actually let'"'"'s add a footer'; do
   [ -z "$(sug prompt "{\"session_id\":\"q4\",\"prompt\":\"$p\"}")" ] || fail "\"$p\" counted as a correction"
 done
