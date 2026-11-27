@@ -18,7 +18,8 @@ This is Harry's user-level Claude Code setup: the same instructions and tools on
 | `install.sh` | Installs all of the above into `~/.claude`. Safe to run again |
 | `cloud/bootstrap.sh` | The script to paste into a claude.ai cloud environment, once. It clones this repository and runs `cloud/setup.sh` |
 | `cloud/setup.sh` | What a cloud VM runs: tools, then `install.sh` |
-| `templates/repo/` | What each project repository should carry for itself |
+| `templates/repo/` | What each project repository should carry for itself: CI (`.github/workflows/ci.yml`, whose `ci` job main requires), Dependabot for the pinned actions, `.gitattributes` and `.claude/settings.json`. Its `CLAUDE.md` is the starting point for `projects/<repo>.md` and never goes into the repository |
+| `new-repo.sh` | `./new-repo.sh <name>` creates a public repository with that baseline before any code: the files above, squash-only auto-merge, secret scanning with push protection, Dependabot, and a ruleset on main requiring `ci`. Run it where `gh` is signed in (PC or server); cloud sessions can't change repository settings. Safe to run again |
 | `tests/test.sh` | The tests. `--vm` also runs `cloud/setup.sh` in a fresh `ubuntu:24.04` container |
 | `docs/handoff.md` | The latest handoff between sessions: what's live, what isn't verified, what's next |
 | `docs/workflow.md` | How the layers fit together, a session start to finish, known gaps, and what's next |

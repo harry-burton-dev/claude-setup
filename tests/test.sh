@@ -400,8 +400,60 @@ else
   printf 'skip: claude not installed, magister-avatar not tested\n'
 fi
 
+# new-repo.sh gives a new repository its baseline through gh. A stand-in gh records each call,
+# keeps what it is sent, and serves a local bare repository as the GitHub remote.
+cat > "$work/bin/gh" <<EOF
+#!/usr/bin/env bash
+echo "\$*" >> "$work/gh.log"
+case "\$*" in
+  "api user"*) echo harry ;;
+  "repo create"*) git init -q --bare "$work/remote.git" ;;
+  "repo view harry/demo --json url"*) echo "$work/remote.git" ;;
+  "repo view"*) [ -d "$work/remote.git" ] ;;
+  "api repos/harry/demo/rulesets --jq"*) if [ -f "$work/ruleset.json" ]; then echo 7; fi ;;
+  *"repos/harry/demo/rulesets"*) cat > "$work/ruleset.json" ;;
+  "api -X PATCH repos/harry/demo "*) cat > "$work/settings.json" ;;
+esac
+EOF
+chmod +x "$work/bin/gh"
+PATH="$work/bin:$PATH" "$repo/new-repo.sh" demo > "$work/newrepo1.log"
+grep -qx 'repo create harry/demo --public' "$work/gh.log" || fail "new-repo.sh did not create a public repository"
+files="$(git --git-dir="$work/remote.git" ls-tree -r --name-only main)"
+for f in .github/workflows/ci.yml .github/dependabot.yml .claude/settings.json .gitattributes; do
+  grep -qx "$f" <<<"$files" || fail "baseline file $f not pushed"
+done
+! grep -q CLAUDE.md <<<"$files" || fail "a CLAUDE.md was pushed into the project repository"
+ok "new-repo.sh creates a public repository and pushes the baseline files, without a CLAUDE.md"
+node -e '
+const s=require(process.argv[1]), r=require(process.argv[2]);
+const want={allow_squash_merge:true,allow_merge_commit:false,allow_rebase_merge:false,delete_branch_on_merge:true,allow_auto_merge:true};
+for (const k in want) if (s[k]!==want[k]) throw new Error("setting "+k);
+if (s.security_and_analysis.secret_scanning_push_protection.status!=="enabled") throw new Error("push protection");
+const rules=Object.fromEntries(r.rules.map(x=>[x.type,x.parameters||{}]));
+if (r.enforcement!=="active"||!rules.deletion||!rules.non_fast_forward) throw new Error("ruleset basics");
+if (rules.pull_request.allowed_merge_methods.join()!=="squash") throw new Error("merge methods");
+if (rules.required_status_checks.required_status_checks.map(c=>c.context).join()!=="ci") throw new Error("required check");' \
+  "$work/settings.json" "$work/ruleset.json" || fail "new-repo.sh sent the wrong settings or ruleset"
+grep -qx 'api -X PUT repos/harry/demo/vulnerability-alerts' "$work/gh.log" || fail "Dependabot alerts not enabled"
+grep -qx 'api -X POST repos/harry/demo/rulesets --input -' "$work/gh.log" || fail "ruleset not created"
+ok "new-repo.sh sets squash-only auto-merge, push protection, Dependabot, and a ruleset requiring ci"
+: > "$work/gh.log"
+PATH="$work/bin:$PATH" "$repo/new-repo.sh" demo > "$work/newrepo2.log"
+! grep -q 'repo create' "$work/gh.log" || fail "a second run created the repository again"
+grep -qx 'api -X PUT repos/harry/demo/rulesets/7 --input -' "$work/gh.log" || fail "a second run did not update the ruleset in place"
+grep -q 'already has commits' "$work/newrepo2.log" || fail "a second run pushed the baseline files again"
+ok "new-repo.sh run again updates settings in place and leaves the code alone"
+
+if command -v actionlint >/dev/null 2>&1 && command -v zizmor >/dev/null 2>&1; then
+  actionlint "$repo/templates/repo/.github/workflows/ci.yml" || fail "actionlint on the template workflow"
+  zizmor -q --offline "$repo/templates/repo" || fail "zizmor on the template workflow"
+  ok "the template workflow passes actionlint and zizmor"
+else
+  printf 'skip: actionlint or zizmor not installed, template workflow not linted\n'
+fi
+
 if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" "$repo/tests/hook-contract.sh" "$repo/tests/jit-backtest.sh" || fail "shellcheck"
+  shellcheck "$repo/new-repo.sh" "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" "$repo/tests/hook-contract.sh" "$repo/tests/jit-backtest.sh" || fail "shellcheck"
   ok "shellcheck clean"
 else
   printf 'skip: shellcheck not installed\n'

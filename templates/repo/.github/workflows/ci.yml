@@ -1,0 +1,48 @@
+# The baseline CI. The ruleset on main requires the `ci` job, so keep its name; add jobs to its `needs`.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions: {}
+jobs:
+  workflows:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: pipx run --spec actionlint-py==1.7.12.25 actionlint
+      - run: pipx run zizmor==1.33.1 .
+        env:
+          GH_TOKEN: ${{ github.token }}
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Runs the project's check command once there is code. Replace it if the project isn't pnpm.
+      - run: |
+          if [ -f package.json ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+            pnpm check
+          else
+            echo "no code yet"
+          fi
+  ci:
+    if: always()
+    needs: [workflows, test]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do [ "$r" = success ] || exit 1; done

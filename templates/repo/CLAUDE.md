@@ -3,7 +3,7 @@
 ## Where work happens
 
 - Code and docs live in this repository. Its `main` branch on GitHub is the source of truth, so run `git fetch` first.
-- Every session works on its own branch and opens a pull request. Harry merges.
+- Every session works on its own branch and opens a pull request with auto-merge on (squash). It merges itself once CI's `ci` check passes.
 
 ## Commands
 

@@ -1,0 +1,13 @@
+# Keeps the commit SHAs that pin each action in .github/workflows up to date, in one weekly PR.
+# The cooldown waits a week after a release, so a compromised one is likely caught first.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
