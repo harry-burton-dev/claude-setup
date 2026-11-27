@@ -45,7 +45,7 @@ A second perspective that makes the work better, without being asked and without
 - **What it can touch:** a hook holds it to `.work/` and `~/.magister/`, with no shell. Findings wait in `~/.magister/outbox/` until uploaded; a hook clears each one once it reaches OneDrive, and session start flags any left behind.
 - **Evals:** `tests/evals/magister/` (see `docs/magister.md`).
 
-The intent reviewer, `outerpale-startup:intent-reviewer`, read-only, checks a branch's diff against its issue's goal and design intent before the PR opens (`outerpale-devops:start-issue`).
+The intent reviewer, `outerpale-startup:intent-reviewer`, read-only, checks a branch's diff against its issue's goal and design intent before the PR opens (`outerpale-devops:build-issue`).
 
 ## Cloud environments
 
@@ -72,7 +72,7 @@ Linear is the record of what is being done. Initiative → project → issue; ev
 | Build | One issue, which is one GSD phase | The phase executed and verified by GSD, then one PR titled `OUT-123: …` with `Fixes OUT-123` in the body | Linear's GitHub integration, from the ID |
 | Other | None | Anything | Nothing |
 
-- **Status sync is Linear's.** The GitHub integration links a PR from the issue ID and moves the issue when the PR merges. Claude moves an issue to In Progress when a session starts on it (`start-issue`), and never sets Done by hand.
+- **Status sync is Linear's.** The GitHub integration links a PR from the issue ID and moves the issue when the PR merges. Claude moves an issue to In Progress when a session starts on it (`build-issue`), and never sets Done by hand.
 - **Linear holds what and when; `.planning/` holds how.** A builder finds its phase from the issue. The plan is the phase's `PLAN.md`, written and read by GSD's agents, never by hand.
 - **Enforced:** `outerpale-devops` refuses a PR without the session's issue ID, or, in a project or initiative session, without any issue ID.
 - **In the repository:** code and GSD's `.planning/`. Scratch and reviews go in `.work/`, which never reaches git.
