@@ -1,6 +1,6 @@
 {
   "name": "jit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Just-in-time catching tests before every PR, in every repository: generated tests run on the change and its parent, likely bugs reported, tests that pin the change landed.",
   "author": {
     "name": "Harry"

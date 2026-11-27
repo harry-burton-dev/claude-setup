@@ -1,0 +1,17 @@
+{
+  "kind": "false-positive",
+  "intent": "outerpale-startup: the session-start hook is now silent when the repository already has its own CLAUDE.md; it no longer prints a reminder.",
+  "files": {
+    "hooks/session-start.sh": "#!/usr/bin/env bash\nset -euo pipefail\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null)\" || exit 0\n[ -f \"$root/CLAUDE.md\" ] && exit 0\necho \"outerpale-startup: no CLAUDE.md in $(basename \"$root\")\"\n"
+  },
+  "test": {
+    "id": "fp-intended-change",
+    "risk": "the hook stopped telling the session about the repository's CLAUDE.md",
+    "file": "tests/jit/reminder.sh",
+    "body": "set -e\nd=$(mktemp -d); git init -q \"$d/r\"; touch \"$d/r/CLAUDE.md\"\nout=$(cd \"$d/r\" && bash \"$OLDPWD/hooks/session-start.sh\")\n[ -n \"$out\" ] || { echo 'FAIL: the hook said nothing in a repository with a CLAUDE.md'; exit 1; }\n",
+    "P": "pass",
+    "R": "fail",
+    "output": "FAIL: the hook said nothing in a repository with a CLAUDE.md"
+  },
+  "expect": "should-pass"
+}

@@ -275,10 +275,31 @@ What this says:
 - **Precision so far** is 6 of 6 reported catches upheld, with 0 false alarms on the clean commit tried. That is too few runs to trust. The 20-PR trial is the real measure.
 - **Each run's cost:** about 85–135k subagent tokens and 1.5–2.5 minutes for the generator, plus 25–40 seconds for the assessor.
 
+## 6b. The VM run and the assessor evals (jit 0.2.0)
+
+**The VM run.** `vm-paths` in the `JiT:` line works like this:
+
+- Triage reports `vm: true` when a change touches one of the paths.
+- The generator then marks tests that need a cloud VM's conditions with `"vm": true`.
+- `jit.js run` runs each such test as root in a fresh container from `jit-vm:ubuntu-24.04` (Ubuntu 24.04 plus git, node and curl), with the revision at `/repo`. A fresh container per run means the parent's run can't leave state behind for the change's run.
+- The image is built once per machine, which took about 85 seconds here. After that a run takes about a second. The base image comes from Docker Hub, or from `mirror.gcr.io` when Docker Hub rate-limits.
+- With no Docker, VM tests are listed in the report's `notRun` and never reported as catches.
+- claude-setup's own line is in `projects/claude-setup.md`: `invariants tests/hook-contract.sh; vm-paths cloud/, install.sh`.
+
+**The assessor evals.** These are in `tests/evals/jit/`. There are 8 planted candidate catches, each with the verdict it should get:
+
+- **4 false positives:** the paper's two examples ("the title said it all", and a test that breaks an assumption a comment states), a change that meant to remove behaviour, and a wrong test.
+- **4 real bugs:** a stale cache, plus three from our own backtest (newline glue, the error slug, the multi-repo parent).
+
+Running them:
+
+- `node tests/evals/jit/run.js` runs the assessor headless on each case.
+- `--check`, which `tests/test.sh` runs, checks with no model that each case's test really fails on its code.
+
+First run (27 Nov 2026): **8/8**. All 4 false positives were dropped and all 4 real bugs upheld, in 196 seconds for $1.39. Run the evals again whenever the assessor's prompt or the model changes.
+
 ## 7a. Not built yet
 
-- **`vm-paths`** in the `JiT:` line: the slow VM run when a diff touches `cloud/`. Only `invariants` and `skip` are read today.
-- **The assessor evals** (6.4). The assessor is checked only by the live backtest so far.
 - **Root commits.** A repository's first commit has no parent to compare with, so triage skips it. This is why B4 can't be scored.
 
 ## 8. Open questions

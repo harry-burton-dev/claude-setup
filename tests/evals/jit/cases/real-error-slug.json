@@ -1,0 +1,17 @@
+{
+  "kind": "real-bug",
+  "intent": "A proposal leaves the outbox once its OneDrive upload succeeds; a failed upload keeps it for the next session.",
+  "files": {
+    "hooks/mem.js": "const fs = require('fs'), path = require('path');\nfunction uploaded(input, outbox) {\n  const name = path.basename(String((input.tool_input || {}).filename || ''));\n  const resp = String(input.tool_response || '');\n  if (!/\\.md$/.test(name) || !/webUrl/.test(resp) || /\\berror\\b/i.test(resp)) return;\n  fs.rmSync(path.join(outbox, name), { force: true });\n}\nmodule.exports = { uploaded };\n"
+  },
+  "test": {
+    "id": "real-error-slug",
+    "risk": "a successful upload of a proposal named ...-error-... is taken as a failure",
+    "file": "test/uploaded.test.js",
+    "body": "const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path');\nconst { uploaded } = require('../hooks/mem');\nconst outbox = fs.mkdtempSync(path.join(os.tmpdir(), 'ob-'));\nfs.writeFileSync(path.join(outbox, '20261127T1000-error-handling.md'), 'x');\nuploaded({ tool_input: { filename: '20261127T1000-error-handling.md' }, tool_response: 'File uploaded (1 bytes).\\nwebUrl: https://x/20261127T1000-error-handling.md' }, outbox);\nassert.ok(!fs.existsSync(path.join(outbox, '20261127T1000-error-handling.md')), 'a successful upload must leave the outbox');\n",
+    "P": "nobuild",
+    "R": "fail",
+    "output": "AssertionError: a successful upload must leave the outbox"
+  },
+  "expect": "should-fail"
+}
