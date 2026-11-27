@@ -1,10 +1,25 @@
-# JiT catching tests for claude-setup
+# JiT catching tests, in every repository
 
-Status: **draft for Harry's review. Nothing here is built or decided.**
+Status: **draft for Harry's review. Nothing here is built.**
+
+Decided by Harry on 27 Nov 2026:
+
+- JiT runs **in addition to** write-the-check-first; it doesn't replace it.
+- It runs **once before each PR**.
+- It applies to all his code, and the whole process lives in claude-setup.
+
+Everything else here is a proposal.
 
 ## 1. Goal
 
-Catch bugs in a change before its PR merges, for the bugs that `tests/test.sh` lets through. The approach is Meta's just-in-time (JiT) catching tests, adapted to a solo repository of bash and JS hooks. Acceptance is a backtest against the bugs that got through here (section 6).
+Before any branch in any of Harry's repositories becomes a PR, a second, independent test author tries to break the change:
+
+- Tests that fail on the change are reported as candidate bugs ("catching tests").
+- Tests that pass are offered as permanent tests ("hardening tests") in that repository's suite.
+
+Why on top of check-first? Today the same model writes the code and the check that proves it, so both share its blind spots. Every escaped bug in section 3 had a check written first, and the check passed.
+
+Why in claude-setup? It bootstraps every machine and cloud VM, and plugins are never committed to project repositories. So the method ships as a plugin here, and per-repository settings live in `projects/<repo>.md`.
 
 ## 2. What the sources say
 
@@ -18,17 +33,15 @@ Sources read: the full text of [1]; [2] and [3] through fetched HTML, part of it
 
 - **Hardening test:** "one that seeks to protect against future regressions".
 - **Catching test:** "one that catches such a regression or a fault in new functionality introduced by a code change."
-- **JiTTest** (Def. 4): "a timely test for R that is not a timely test for Parent(R)". It is constructed "as soon as the revision appears as a pull request".
-- **Weak catching test** (Def. 10): Catching_R(t) ⇔ Fails_R(t). It fails on R, and that may be a false positive.
+- **JiTTest** (Def. 4): "a timely test for R that is not a timely test for Parent(R)". It is constructed "as soon as the revision appears as a pull request". [1] also notes "many engineers do write unit tests just-in-time". Check-first is that hand-written case; this design adds the generated case.
+- **Weak catching test** (Def. 10): Fails_R(t). It fails on R, and that may be a false positive.
 - **Strong catching test** (Def. 11): Fails_R(t) ∧ Oracle_R(t) = fail. It fails on R, and R really is wrong.
-- **Oracle** (Def. 5): "Oracle_R(t) gives the expected result for test t in R". The paper leaves "how one determines the oracle deliberately unspecified".
-- **Regression catching** (Def. 12/13): the test passes on Parent(R) and fails on R.
-- **Functionality catching** (Def. 14/15): the test fails on R and is not a hardening test for the parent, because it doesn't build there or fails there.
-- **Precision target:** R@P = 0.8, "ensuring that the ratio of false positives to true positives is no worse than 1:4". The paper calls 0.8 "a conservative choice".
+- **Oracle** (Def. 5): "Oracle_R(t) gives the expected result for test t in R". The paper leaves how to get it "deliberately unspecified".
+- **Precision target:** R@P = 0.8, so the "ratio of false positives to true positives is no worse than 1:4".
 
 ### The decision table ([1] Table 3)
 
-Run every generated test on both R and Parent(R). [1] calls this "always wise", and it is the paper's main actionable conclusion. Then:
+Run every generated test on both R and Parent(R). [1] calls this "always wise". Then:
 
 | Parent(R) | R | Decision |
 |---|---|---|
@@ -40,145 +53,187 @@ Run every generated test on both R and Parent(R). [1] calls this "always wise", 
 | pass or fail | no build | give the signal, don't land |
 | fail | fail | discard |
 
-"No build" means the test can't run on that revision, for example because the hook it calls doesn't exist yet.
+"No build" means the test can't run on that revision, for example because the code it calls doesn't exist there yet.
 
-### Other points that apply
+### Other points that shape the design
 
-- **Failure is a trigger, not a verdict.** [1] says a failing JiTTest should be "a 'trigger' to do further testing or analysis before troubling the engineer". The risk of friction "is higher for JiTTests than for merely timely tests", because often the JiTTest is the only test that says anything about the change.
-- **Oracle scavenging** ([1] §6). The only oracle is often the PR's own text, such as its title, comments and CI history. The paper's worked examples weed out false positives using that text alone, for example "the title 'said it all'".
-- **Which generators work** ([3]). Change-aware generation beats generic generation:
-  - Weak catches per diff were 3.6% for TestGen-LLM, 1.6% for ACH, 4.0% for "dodgy diff" and 7.9% for intent-aware generation.
+- **Failure is a trigger, not a verdict.** A failing JiTTest should be "a 'trigger' to do further testing or analysis before troubling the engineer". Friction "is higher for JiTTests than for merely timely tests".
+- **Oracle scavenging** ([1] §6). The expected behaviour has to be scavenged from text that isn't code: the PR title, comments, docs and CI history. The source code describes what the system does, "not a description of its intended behaviour".
+- **Change-aware generators win** ([3]). Weak catches per diff: TestGen-LLM 3.6%, ACH 1.6%, dodgy diff 4.0%, intent-aware 7.9%.
   - Dodgy diff treats the diff "as if it were already a mutant".
-  - Intent-aware generation has an LLM infer the change's intent and risks, turn them into mutants, and generate tests that kill them on the parent.
-- **Assessors** ([3]): rule-based patterns (a broken runner, a broken mock, a server that is down) and an ensemble of LLM judges. They "reduce human review load by 70%".
-- **Real-world precision is low, and that is the risk.**
-  - In [3], 8 of 41 candidates reported to engineers were confirmed (19.5% true positives), even after the assessors.
-  - The blog reports 60% true positives later, at scale.
-  - Of 22,126 generated tests, only 1% were even weak catches.
-- **ACH's assurances** ([2]): buildable, a valid non-flaky regression test, hardening (catches a fault no existing test catches), then relevance as judged by a human. Engineers accepted 73% of ACH's tests.
+  - Intent-aware generation infers the intent and its risks, turns them into mutants, and kills them on the parent.
+- **Assessors** ([3]): rule-based patterns (a broken runner, a broken mock, a server that is down) plus LLM judges. They cut "human review load by 70%".
+- **Precision in the field is the risk.**
+  - In [3], 8 of 41 reported candidates were real (19.5%).
+  - The blog reports 60% at scale.
+  - Only 1% of 22,126 generated tests were even weak catches.
+- **ACH's assurances** ([2]): it builds; it passes consistently (not flaky); it catches a fault no existing test catches; a human judges it relevant. Engineers accepted 73% of ACH's tests.
 
-## 3. The benchmark: bugs that got past `tests/test.sh`
+## 3. Evidence from this repository's history
 
-Found by mining `git log` (53 commits) for fix commits, then tracing each fixed file back to the commit that introduced the bug.
+These are the bugs `tests/test.sh` let through, from `git log` (53 commits):
 
 | # | Introduced | Fixed | Bug | Executable oracle? |
 |---|---|---|---|---|
-| B1 | e853a90 (lookup), 09b5369 (`.work/`) | dd39928 | outerpale-startup's SessionStart hook exits silently (`git rev-parse` fails) when a cloud session starts in the non-git parent folder of several repositories | yes |
+| B1 | e853a90, 09b5369 | dd39928 | outerpale-startup's SessionStart hook exits silently when a cloud session starts in the non-git parent folder of several repositories | yes |
 | B2 | 064a7d5 | b2959fd | outerpale-mem's SessionStart hook: the same bug, written independently | yes |
-| B3 | 35d73b4 | 6dde42e, then c28869c | Node 26 shadowed by `/opt/node22/bin` on cloud VMs. **The first fix, 6dde42e, did not fix it** | yes, needs `tests/test.sh --vm` (Docker) |
-| B4 | 35d73b4 | a9e048c | `install.sh`, `cloud/setup.sh` and `tests/test.sh` committed without the executable bit | yes |
-| B5 | 3a0dc70 | 04dffb4 | the companion agent's brief has no current time, and the agent has no clock | no: prompt-only |
+| B3 | 35d73b4 | 6dde42e, then c28869c | Node 26 shadowed by `/opt/node22/bin` on cloud VMs. The first fix, 6dde42e, did not fix it | yes, needs `tests/test.sh --vm` (Docker) |
+| B4 | 35d73b4 | a9e048c | scripts committed without the executable bit | yes |
+| B5 | 3a0dc70 | 04dffb4 | the companion agent's brief has no current time | no: prompt-only |
 | B6 | (in the test) | d085db5 | a `--vm` check for pnpm failed silently | no: a bug in the test itself |
-| — | outerpale-devops 0.6.0 | — | a bundled AskUserQuestion answer was misread as "scope undecided" | not in this repository |
 
-Patterns:
+Lessons that hold beyond this repository:
 
-1. Most of these bugs are in **new** code (B1, B2, B4, B5). So the parent has no behaviour to compare against: these are [1]'s "no build on parent" rows, and the oracle has to come from intent.
-2. The intent that would have caught B1 and B2 was **not in the diff or the commit message**. It is a fact about the environment: a cloud session with several repositories starts in a non-git parent folder. That fact is now in global memory as a lesson. Oracle scavenging has to read environment facts as well as the PR.
-3. B3's first fix (6dde42e) is the one case that matches the paper's regression and fix-check pattern: the commit message states the intent ("Node 26 the default node"), and a test of that intent fails on the "fix".
+1. **Most escaped bugs are in new code.** They are the "no build on parent" rows, so the oracle has to come from intent, not from the parent's behaviour.
+2. **The deciding fact often lives in the environment, not in the diff.** For B1 and B2 it was the fact that a cloud session with several repositories starts in a non-git parent folder. Oracle scavenging has to read the memories and the cloud-environment docs as well as the PR.
+3. **Some invariants are known ahead of time and need no LLM.** A deterministic probe ran each historical version of the hook in a non-git folder holding two repositories. It passed when the hook covered both. It is scratch, not committed:
 
-### Probe already run (evidence, not a proposal)
+   ```
+   09b5369  session-start.sh  repos covered 0/2      064a7d5  mem.js  repos named 0/2
+   dd39928^ session-start.sh  repos covered 0/2      b2959fd^ mem.js  repos named 0/2
+   dd39928  session-start.sh  repos covered 2/2      b2959fd  mem.js  repos named 2/2
+   ```
 
-A deterministic probe ran each historical version of the hook in a non-git folder holding two fresh repositories. It passed when the hook covered both. The probe is scratch, not committed.
+   So JiT has two layers: fixed checks for invariants we already know, and generated tests for the ones we don't.
 
-```
-09b5369  outerpale-startup session-start.sh  repos covered 0/2
-dd39928^ outerpale-startup session-start.sh  repos covered 0/2
-dd39928  outerpale-startup session-start.sh  repos covered 2/2
-064a7d5  outerpale-mem mem.js session-start  repos named   0/2
-b2959fd^ outerpale-mem mem.js session-start  repos named   0/2
-b2959fd  outerpale-mem mem.js session-start  repos named   2/2
-```
+## 4. Design
 
-A fixed test with no LLM catches B1 and B2. Run against the introducing commits, it is [1]'s "no build on parent, fails on R" row, and so a true functionality catch.
+### 4.1 What ships, all in claude-setup
 
-## 4. Recommendation: two layers, cheapest first
+| Piece | Where | Purpose |
+|---|---|---|
+| Plugin `jit` | `plugins/jit/`, added to `plugins.lock` | Installed on every machine and VM by `install.sh` and `cloud/setup.sh`, like the other plugins here |
+| Skill `jit:run` | `plugins/jit/skills/run/SKILL.md` | The procedure in 4.3. Run before each PR, or on demand |
+| Agent `jit:generator` | `plugins/jit/agents/` | Writes intent, mutants and tests from the inputs. Read-only on the repository; writes only under `.work/jit/` |
+| Agent `jit:assessor` | `plugins/jit/agents/` | The LLM judge: given the intent text, should this failure happen on R? Read-only |
+| Runner `jit.js` | `plugins/jit/scripts/` | Deterministic: worktrees, runs on both revisions, retries for flakiness, the rule-based assessor, classification by the decision table, and the report file |
+| Pre-PR hook | `plugins/jit/hooks/` | See 4.4 |
+| Per-repository settings | `projects/<repo>.md` | No new file. JiT reads the existing `# Commands` test line, plus an optional `JiT:` line (4.2) |
+| Global rule | `CLAUDE.md` §4 | One sentence: "Before a PR opens, run `jit:run`; it adds to the checks you wrote first and doesn't replace them." |
+| Tests and evals | `tests/test.sh`, `tests/evals/jit/`, `tests/jit-backtest.sh` | Section 6 |
 
-### Layer 1: hook contract checks (deterministic, in `tests/test.sh`)
+**Why its own plugin, not part of `outerpale-startup`:** JiT is a method with its own version, evals and backtest, and it applies in sessions with no Linear scope too. `intent-reviewer` stays where it is, and both run at the same moment.
 
-Every hook in `plugins/*/hooks/hooks.json` runs in the three session shapes from the global-memory lesson:
+### 4.2 Per-repository settings
 
-- one repository
-- a non-git folder holding two
-- a folder holding none
+JiT works in any language, because it uses the repository's own test command and framework.
 
-It must not exit non-zero, must stay silent with none, and must name each repository with two. Each plugin then asserts its own behaviour on top.
+- **Test command:** the `Test:` line in `projects/<repo>.md` `# Commands`. For example, outerpale-devops has `node --test tests/` and claude-setup has `tests/test.sh`. If a repository has no test command, JiT reports that it can't run there and asks once whether to add one through `outerpale-startup:project-claude-md`.
+- **Generated test style:** the same framework as the existing tests. JiT looks at the files under the test directory and follows how they are written.
+- **Optional `JiT:` line,** for each repository's known invariants and run limits, for example:
 
-- **Generated, not hand-written:** the harness is generated from every hook command in `hooks.json`, so a new plugin's hook is covered without anyone remembering to add it. This is the step that would have stopped B2 from repeating B1.
-- **Why first:** it catches B1 and B2 now, costs nothing per PR, and has no false positives.
-- **What it misses:** bugs where no rule is known ahead of time. That gap is what Layer 2 is for.
-- **Simpler alternative to weigh:** Layer 1 alone may be enough for this repository's size (see Q1).
+  ```
+  JiT: invariants tests/invariants.sh; vm-paths cloud/; skip docs/**, *.md
+  ```
 
-### Layer 2: a JiT catching step (LLM, report-only)
+  - `invariants` is the repository's fixed checks (layer 1).
+  - `vm-paths` are paths whose changes need the slow environment run.
+  - `skip` are paths that never trigger generation.
 
-A skill, `outerpale-startup:jit`, plus a read-only agent, run once before a PR opens. It runs at the same moment as `intent-reviewer` and reports alongside it.
+  Without the line, JiT uses defaults: no invariants script, no VM run, and docs-only diffs skipped.
 
-1. **Inputs (oracle scavenging):**
-   - the diff
-   - the commit messages and PR body
-   - the Linear issue's plan, if there is one
-   - the design doc, if there is one
-   - the environment facts:
-     - `docs/cloud-environment.md`
-     - the three session shapes
-     - the cloud quirks in global memory (writes under `~/.claude/` refused, no connectors in `claude -p`, and so on)
-2. **Generate.** An intent-aware generator writes the change's intent and risks as one-line mutant descriptions. Then it writes up to N throwaway bash tests that would kill those mutants. A dodgy-diff pass treats the diff itself as a possible mutant of the parent.
-3. **Run on both revisions.** Run each test at HEAD and at `git merge-base HEAD origin/main`, each in its own `git worktree` under `.work/jit/`, with a temporary `HOME`, as `tests/test.sh` already does. Use the `--vm` path only when the diff touches `cloud/setup.sh`.
-4. **Classify** each result with the decision table in section 2. Discard tests that fail on both revisions. Rerun each failing test 3 times to drop flaky ones.
-5. **Assessors.**
-   - Rules first: the test errored before its assertion, depends on the network, uses `claude -p` for connector work, or writes under `~/.claude/`.
-   - Then one LLM judge (not an ensemble, at this scale). It asks: given the intent text, should this test fail on R?
-6. **Report, never block.**
-   - Output is a short list of candidate catches. Each shows the test, its outcomes on the parent and on R, and the one-line intent it checks, in a "Was this change expected?" form.
-   - The report goes at the end of the reply, matching Harry's "notified, never interrupted" preference.
-   - Tests are thrown away. One that Harry confirms can be promoted into `tests/test.sh` as a hardening test: the "land" rows.
+Layer 1 for claude-setup is the hook contract check: it runs every hook in `plugins/*/hooks/hooks.json` in three folder shapes (one repository, a non-git folder holding two, a folder holding none). It is generated from `hooks.json`, so a new plugin's hook is covered automatically. Other repositories write their own when an invariant becomes known. A confirmed JiT catch is usually how one becomes known.
 
-**Trigger: recommended.** Invoke it on purpose in the pre-PR step, next to `intent-reviewer`. Don't use a blocking PreToolUse hook on `create_pull_request`, because:
+### 4.3 The procedure (`jit:run`)
 
-- [1] says failing JiT signals carry high friction and should be a trigger for more analysis, not a gate.
-- Its precision in the field was 19.5–60%.
-- A hook would add per-PR minutes and tokens to doc-only PRs.
+1. **Scope.**
+   - R is HEAD and Parent(R) is `git merge-base HEAD origin/<default>`.
+   - If the diff touches only `skip` paths, write a "skipped: no code" report and stop.
+   - In a cloud session that started in a parent folder holding several repositories, run once for each repository whose branch has changes, and name the repository in each report.
+2. **Layer 1.** If there is an invariants script, run it on R. Any failure is reported as a catch with no LLM involved.
+3. **Scavenge the oracle.** Collect, cut at R:
+   - the diff and the branch's commit messages
+   - the Linear issue's goal and acceptance criteria, if the session has one
+   - the GSD phase's `PLAN.md`, if there is one
+   - any design doc
+   - the repository's project CLAUDE.md gotchas
+   - repository and global memory
+   - `docs/cloud-environment.md` for cloud facts
+4. **Generate** (`jit:generator`).
+   - Write the change's intent as 3 to 7 one-line risks, each a plausible way R could be wrong.
+   - For each risk, write a test that should pass if R is right.
+   - Then a dodgy-diff pass: tests that the diff, read as a mutant of the parent, would break.
+   - At most N tests (open question 2).
+5. **Run** (`jit.js`).
+   - Each test runs at R and at Parent(R), each in its own `git worktree` under `.work/jit/<sha>/`, with a temporary `HOME`.
+   - The VM run happens only when the diff touches `vm-paths`.
+   - Each failing test is rerun 3 times, and a flaky one is dropped.
+6. **Classify** with the decision table in section 2.
+7. **Assess** each test that fails on R.
+   - Rules first: the test errored before its assertion, needs a network host it can't reach, depends on connectors (which `claude -p` lacks), or writes under `~/.claude/`.
+   - Then `jit:assessor`, a single judge rather than an ensemble at this scale, with the step-3 intent text.
+   - Only "should fail" verdicts are reported.
+8. **Report** to `.work/jit/<sha>/report.json` and as a short note at the end of Claude's reply, which matches "notified, never interrupted".
+   - **Catches:** each with the test, its outcomes on the parent and on R, and the risk it checks, asked as "Was this change expected?"
+   - **Hardening tests offered:** the "land" rows.
+9. **Land on Harry's word.**
+   - A confirmed catch gets fixed on the branch. Its test is landed with the fix, as a regression test.
+   - Hardening tests that Harry accepts are copied into the repository's test directory and committed in the same PR.
+   - Nothing lands without his OK. Unlanded tests stay in `.work/`, which is never committed.
 
-Optionally, a PreToolUse hook can *remind* Claude to run it when the diff touches `plugins/*/hooks/`, `install.sh` or `cloud/`.
+### 4.4 The trigger: before each PR, in every repository
 
-**False-positive budget.** Per [1], at least 0.8 precision on what reaches Harry, and in absolute terms at most one false alarm per five PRs. If the backtest's precision falls below that, the step reports less, rather than reporting more and asking Harry to filter.
+The flow today goes GSD verify, then `intent-reviewer`, then the PR. `outerpale-devops:build-issue` lives in another repository, and this process has to live in claude-setup. So the trigger is a hook in the `jit` plugin rather than an edit to build-issue:
 
-**Cost budget, to measure.** Measure through Langfuse `claude_code.interaction` traces: at most 10 minutes and a fixed token ceiling per run (the figure is open, Q4).
+- A **PreToolUse hook on PR creation.** The matcher covers both GitHub MCP spellings, `mcp__github__create_pull_request` and `mcp__GitHub__create_pull_request`.
+- It checks for `.work/jit/<head-sha>/report.json`. If the report is missing, it denies once, with "run the `jit:run` skill first, then open the PR".
+- It gates on JiT **having run**, never on what it found. A run with catches still lets the PR open, and the catches go in the PR body. That keeps [1]'s "trigger, not verdict" while making sure the step happens every time.
+- It fails open on any internal error, like the outerpale-devops hooks.
+- Draft PRs that hold only docs, such as this one, are covered by the "skipped: no code" report.
+
+This composes with outerpale-devops' own guard on the same tool. Both have to allow the call, and each says why it refused.
+
+### 4.5 Budgets
+
+- **False alarms:** at least 0.8 precision on what reaches Harry, and in absolute terms at most one false alarm per five PRs across all repositories. When precision drops below that, the assessor's threshold goes up: JiT reports less rather than more.
+- **Time and tokens:** measured through Langfuse `claude_code.interaction` traces. The proposal is at most 10 minutes per run and a token ceiling set per repository (open question 2).
 
 ## 5. Cloud-session cases
 
-Both layers run in all three shapes. The worktrees live under each repository's `.work/jit/`, which is never committed. Layer 2 reads no connectors, so it works under `claude -p`. The LLM judge runs as a subagent of the real session.
+- **Three shapes.** Every hook and script works in all three: one repository, a non-git parent folder holding two, a folder holding none. With none, JiT does nothing.
+- **Worktrees** go under each repository's `.work/jit/`.
+- **Connectors.** JiT needs none, so it also works under `claude -p`. The assessor runs as a subagent of the real session.
+- **`HOME`.** Writes under `~/.claude/` are refused in the cloud, so temporary `HOME` folders live in `.work/jit/`.
 
-## 6. Acceptance: the backtest
+## 6. Acceptance
 
-Interface, written before any implementation:
+The checks, written before any implementation:
 
-```
-tests/jit-backtest.sh [--layer 1|2] [--vm]
-  reads  tests/jit/benchmark.tsv   # columns: id  buggy_rev  fixed_rev  paths  intent
-  reads  tests/jit/clean.tsv       # commits believed bug-free: rev  paths  intent
-  for each row: worktree at buggy_rev (as R) and buggy_rev^ (as parent); run the layer;
-                then worktree at fixed_rev and expect no report
-  prints one line per row:  B1 caught|missed|false-alarm  <test name>  <parent>/<R> outcome
-  final line:               caught=X/Y  false_alarms=F/M  precision=P
-  exit 0 iff the thresholds below hold
-```
+1. **`tests/test.sh` covers the plugin.**
+   - The hook denies without a report and allows with one, including a report with catches.
+   - It fails open on bad input, and both GitHub tool spellings match.
+   - `jit.js` classifies each row of the decision table from canned outcomes.
+   - Everything works in the three folder shapes.
+2. **`tests/jit-backtest.sh`.** It replays the escaped bugs with inputs cut at the buggy revision (the leakage guard).
 
-Thresholds:
+   ```
+   tests/jit-backtest.sh [--repo <path>] [--layer 1|2] [--vm]
+     reads  tests/jit/benchmarks/<repo>.tsv   # id  buggy_rev  fixed_rev  paths  intent
+     reads  tests/jit/clean/<repo>.tsv        # rev  paths  intent (commits believed bug-free)
+     prints one line per row: B1 caught|missed|false-alarm  <test>  <parent>/<R>
+     final:  caught=X/Y  false_alarms=F/M  precision=P; exit 0 iff thresholds hold
+   ```
 
-- **Layer 1:** catches B1 and B2, with 0 false alarms on `clean.tsv`.
-- **Layer 2:** catches at least 2 of B1, B2, B3 (6dde42e as R) and B4, without being given the fix. It has at most 1 false alarm across at least 10 clean commits (M ≥ 10), and precision of at least 0.8 on what it reports.
-- **Out of scope:** B5 (no executable oracle; that belongs in evals) and B6 (a bug in a test).
+   The benchmark files for every repository live here in claude-setup. outerpale-devops' bundled-answer bug (0.6.0) is its first row, with its revisions still to be found in that repository.
 
-**The backtest is a smoke test, not proof.** Once Layer 1 exists, only B3 and B4 are left for Layer 2 to catch. That is too few to measure precision. Real acceptance for Layer 2 is a trial over the next 15–20 PRs, logging each report as confirmed or false alarm.
+   Thresholds:
+   - **Layer 1 on claude-setup:** catches B1 and B2, with 0 false alarms.
+   - **Layer 2:** catches at least 2 of B1 to B4 without being given the fix, with at most 1 false alarm in at least 10 clean commits.
+   - **Two runs:** with and without memory as an input, which shows how much depends on oracle scavenging.
+3. **A prospective trial.** The backtest has too few bugs to measure precision, so it is a smoke test. Real acceptance is the next 20 PRs across all repositories, each report logged as confirmed or false alarm in `.work/jit/trial.tsv`, and copied to repository memory so it survives the VM. The 0.8 precision target applies there.
+4. **Evals** in `tests/evals/jit/`: canned diffs with known intent, where the assessor has to separate the paper's two weed-out examples (§6.2 and §6.3): a "the title said it all" false catch, and a failure that breaks an assumption a code comment states.
 
-**Leakage guard.** Layer 2 must not see the fix commit, later commits, or memories written after the bug. Its inputs are cut at `buggy_rev`. The cloud-shapes lesson is in memory only because of B1, so the backtest runs twice, with and without the environment-facts input. That shows how much of the catch comes from the oracle and how much from the generator.
+## 7. Build order (each its own PR, on Harry's go)
 
-## 7. Open questions for Harry
+1. Layer 1 for claude-setup: the hook contract check in `tests/test.sh`. It is small, needs no LLM, and catches B1 and B2.
+2. `jit.js` (worktrees, runs on both revisions, classification, report) and its tests.
+3. The generator and assessor agents, the `jit:run` skill, the evals, and the backtest.
+4. The pre-PR hook, the `plugins.lock` entry, and the `CLAUDE.md` §4 sentence. JiT goes live everywhere at this step.
+5. The 20-PR trial. Then Harry decides whether to keep it, tune it or drop it.
 
-1. **Layer 1 only, or both?** Layer 1 alone catches the two bugs that actually escaped through hooks. Layer 2 earns its cost only if it also catches B3 or B4 in the backtest.
-2. **Trigger:** an on-demand pre-PR step (recommended), or a blocking hook?
-3. **Where it lives:** in `outerpale-startup` next to `intent-reviewer` (recommended), or as its own plugin?
-4. **Token and time ceiling** per run.
-5. **Doc location.** The installed global `CLAUDE.md` says design docs go in `docs/design/`, but this repository's `CLAUDE.md` now says work runs through GSD `.planning/`. Should this design become a GSD phase?
-6. Should confirmed JiT tests be promoted into `tests/test.sh` automatically, or only when Harry agrees to each one?
+## 8. Open questions
+
+1. Is the gate in 4.4 right? It denies PR creation until JiT has run, without blocking on what it finds. A non-blocking reminder is the softer choice.
+2. Limits: the maximum number of tests per run, the time, and the token ceiling.
+3. Should a catch go in the PR body automatically, or only after Harry has seen it?
+4. **Doc location.** The installed global `CLAUDE.md` says design docs go in `docs/design/`, but this repository's `CLAUDE.md` now says work runs through GSD's `.planning/`. Should this design become a GSD phase, or phases?
