@@ -9,7 +9,7 @@ const path = require('path');
 
 const SKILL = 'outerpale-startup:project-claude-md';
 // A correction says so outright. A bare "no" isn't one: "no thats okay" agrees.
-const CORRECTION = /^\W*(?:no\s*[,.!-]\s*(?!(?:that'?s|thats|it'?s|its)\s+(?:ok|okay|fine|good|great))\S|nope\b|wrong\b|that'?s (?:not right|not what|wrong)|not (?:like )?that\b)|\b(?:i told you|i said|i meant|as i said|i already said|we always|we never|you keep|every time you)\b/i;
+const CORRECTION = /^\W*(?:no\s*[,.!-]\s*(?!(?:that'?s|thats|it'?s|its)\s+(?:ok|okay|fine|good|great))\S|nope\b|wrong\b|that'?s (?:not right|not what|wrong)|not (?:like )?that\b)|\b(?:i told you|as i said|i already said|we always|we never|you keep|every time you)\b/i;
 // Machine-written prompts (notifications, subagent reports, reminders) are not the person.
 const MACHINE = /<(?:task-notification|agent-message|system-reminder|local-command-stdout|wake|relay)\b|\[SYSTEM NOTIFICATION/;
 // Commands too everyday to be a project's own.

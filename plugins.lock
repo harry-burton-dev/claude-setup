@@ -16,3 +16,6 @@ outerpale-startup@claude-setup harry-burton-dev/claude-setup
 
 # Magister: a background second perspective at design, UI and decision moments; findings go to OneDrive Claude/magister/. Kept in this repository.
 magister@claude-setup harry-burton-dev/claude-setup
+
+# outerpale-mem: each repository's memory in OneDrive Claude/memory/<repo>/, loaded at session start, consolidated by a nightly dream. Kept in this repository.
+outerpale-mem@claude-setup harry-burton-dev/claude-setup

@@ -163,6 +163,29 @@ mg uploaded "$(up 2026-11-27-b.md 'File uploaded (12 bytes).\nwebUrl: https://x'
 [ ! -e "$work/maghome/.magister/outbox/2026-11-27-b.md" ] || fail "a successful upload left the outbox file"
 ok "a successful OneDrive upload clears its outbox file; a failed one keeps it"
 
+# outerpale-mem: memory kept in OneDrive, loaded at session start, proposals uploaded before the session ends.
+memjs="$repo/plugins/outerpale-mem/hooks/mem.js"
+mm() { (cd "$1" && HOME="$work/memhome" node "$memjs" "$2" <<<"$3"); }
+out="$(mm "$work/demo" session-start '{}')"
+grep -q 'outerpale-mem:loader' <<<"$out" || fail "session start did not ask for memory to be loaded"
+grep -q 'Claude/memory/demo/' <<<"$out" || fail "session start did not name the repository's memory folder"
+[ -z "$(mm "$work" session-start '{}')" ] || fail "memory was loaded outside a git repository"
+ok "session start loads the repository's memory, and nothing outside a repository"
+mkdir -p "$work/memhome/.outerpale-mem/outbox" && touch "$work/memhome/.outerpale-mem/outbox/20261127T1000-canary.md"
+grep -q '1 memory proposal' <<<"$(mm "$work/demo" session-start '{}')" || fail "an unsent proposal was not flagged at session start"
+out="$(mm "$work/demo" stop '{"stop_hook_active":false}')"
+grep -q '"block"' <<<"$out" || fail "the session could finish with a proposal not uploaded"
+[ -z "$(mm "$work/demo" stop '{"stop_hook_active":true}')" ] || fail "the stop check blocked twice in a row"
+mm "$work/demo" uploaded '{"tool_name":"mcp__Microsoft_365__sharepoint_upload_file","tool_input":{"filename":"20261127T1000-canary.md"},"tool_response":"File uploaded (90 bytes).\nwebUrl: https://x"}'
+[ ! -e "$work/memhome/.outerpale-mem/outbox/20261127T1000-canary.md" ] || fail "an uploaded proposal stayed in the outbox"
+[ -z "$(mm "$work/demo" stop '{"stop_hook_active":false}')" ] || fail "the stop check blocked with an empty outbox"
+ok "a session can't finish with memory proposals not uploaded, and isn't held twice; an upload clears the outbox"
+grep -q '"deny"' <<<"$(mm "$work/demo" guard '{"agent_type":"outerpale-mem:loader","tool_name":"Write","tool_input":{"file_path":"/x"}}')" || fail "the loader could write"
+[ -z "$(mm "$work/demo" guard '{"tool_name":"Write","tool_input":{"file_path":"/x"}}')" ] || fail "the main session was restricted"
+ok "the memory loader only reads"
+[ -z "$(sug prompt '{"session_id":"q5","prompt":"2) Yes - i meant to do it so parallel sessions can update"}')" ] || fail "\"i meant\" counted as a correction"
+ok "\"i meant\" in the person's own explanation is not a correction"
+
 # Magister's eval grader, on fixtures (no model), and every case well formed.
 node --test "$repo/tests/evals/magister/grade.test.js" >/dev/null 2>&1 || fail "Magister's eval grader"
 node -e '
