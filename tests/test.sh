@@ -400,12 +400,18 @@ for (const f of fs.readdirSync(p)) { const c=JSON.parse(fs.readFileSync(p+f));
   if (["flaw","literal"].includes(c.kind)&&!(c.expect.mention_any||[]).length) throw new Error(f); }' "$repo" || fail "a Magister eval case is malformed"
 ok "Magister's eval grader passes its tests, and every eval case is well formed"
 
+# Every plugin in this repository's marketplace ships through plugins.lock, or the lock says it doesn't.
+for name in $(node -e 'for (const p of require(process.argv[1]).plugins) console.log(p.name)' "$repo/.claude-plugin/marketplace.json"); do
+  grep -qx "$name@claude-setup harry-burton-dev/claude-setup" "$repo/plugins.lock" || grep -qx "# not installed: $name.*" "$repo/plugins.lock" ||
+    fail "marketplace plugin $name is neither in plugins.lock nor marked '# not installed: $name' there"
+done
+ok "every marketplace plugin is in plugins.lock or marked not installed"
+
 # The magister-avatar mod ships through plugins.lock, so a broken one would reach every machine.
-grep -qx 'magister-avatar@claude-setup harry-burton-dev/claude-setup' "$repo/plugins.lock" || fail "magister-avatar is not in plugins.lock"
 if command -v claude >/dev/null 2>&1; then
   claude plugin validate "$repo/plugins/magister-avatar" 2>&1 | grep -q 'Validation passed' || fail "magister-avatar does not validate"
   claude plugin test "$repo/plugins/magister-avatar" >/dev/null 2>&1 || fail "magister-avatar's tests"
-  ok "magister-avatar is in plugins.lock, validates, and passes its tests"
+  ok "magister-avatar validates and passes its tests"
 else
   printf 'skip: claude not installed, magister-avatar not tested\n'
 fi

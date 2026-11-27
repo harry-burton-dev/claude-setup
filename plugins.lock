@@ -35,3 +35,7 @@ jit@claude-setup harry-burton-dev/claude-setup
 # Config comes from environment variables (they win over the plugin's setup wizard): LANGFUSE_BASE_URL, placeholder LANGFUSE_PUBLIC_KEY/SECRET_KEY
 # in cloud (the proxy injects the real Basic auth as a network secret) and CC_LANGFUSE_CAPTURE_IMAGES=false (the Funnel exposes only /api/public/otel).
 langfuse-observability@claude-setup harry-burton-dev/claude-setup
+
+# Listed in this repository's marketplace but not installed everywhere. tests/test.sh fails on a marketplace
+# plugin that is neither installed above nor marked here, so a new plugin is never left out by accident.
+# not installed: send-to-todoist - a desktop-app mod; install it by hand where wanted
