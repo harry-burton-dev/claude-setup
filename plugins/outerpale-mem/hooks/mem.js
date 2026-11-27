@@ -11,6 +11,8 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
+// What the loader may not do: run commands, edit files, or change OneDrive through the connector.
+const WRITES = /^(?:Bash|Write|Edit|MultiEdit|NotebookEdit|mcp__.+__sharepoint_(?:upload_file|update_file|delete_item|move_item|rename_item|copy_item|create_folder))$/;
 const LOADER = 'outerpale-mem:loader';
 function outbox() { return path.join(process.env.OUTERPALE_MEM_HOME || path.join(os.homedir(), '.outerpale-mem'), 'outbox'); }
 function pending() { try { return fs.readdirSync(outbox()).filter(f => f.endsWith('.md')); } catch { return []; } }
@@ -50,11 +52,13 @@ const modes = {
   uploaded(input) {
     const name = path.basename(String((input.tool_input || {}).filename || ''));
     const resp = typeof input.tool_response === 'string' ? input.tool_response : JSON.stringify(input.tool_response || '');
-    if (!/\.md$/.test(name) || !/webUrl/.test(resp) || /\berror\b/i.test(resp)) return;
+    // "error" counts only outside the file's own name and URL (a proposal may be called …-error-handling.md).
+    const said = resp.split(name).join('').replace(/https?:\/\/\S+/g, '');
+    if (!/\.md$/.test(name) || !/webUrl/.test(resp) || /\berror\b/i.test(said)) return;
     fs.rmSync(path.join(outbox(), name), { force: true });
   },
   guard(input) {
-    if (input.agent_type !== LOADER || !/^(?:Bash|Write|Edit|MultiEdit|NotebookEdit)$/.test(input.tool_name)) return;
+    if (input.agent_type !== LOADER || !WRITES.test(input.tool_name)) return;
     out({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'outerpale-mem: the loader only reads memory; it never writes or runs commands.' } });
   },
 };

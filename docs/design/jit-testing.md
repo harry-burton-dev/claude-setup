@@ -240,6 +240,41 @@ The checks, written before any implementation:
 4. The pre-PR hook, the `plugins.lock` entry, and the `CLAUDE.md` §4 sentence. JiT goes live everywhere at this step.
 5. The 20-PR trial. Then Harry decides whether to keep it, tune it or drop it.
 
+## 6a. Results so far (27 Nov 2026)
+
+`tests/jit-backtest.sh`, layer 1, run in `tests/test.sh`:
+
+```
+B1 caught at 09b5369, passes at the fix dd39928
+B2 caught at 064a7d5, passes at the fix b2959fd
+B3 n/a (not a plugin hook)
+B4 n/a (not a plugin hook)
+layer 1: caught=2/2 false_alarms=0 over 5 clean commit(s)
+```
+
+Layer 2 ran live: the generator and assessor prompts, run as subagents in worktrees cut at the buggy commit, with only that commit's message as intent.
+
+| Row | Without environment facts | With environment facts |
+|---|---|---|
+| B1 (09b5369) | **missed**. It also wrote a passing test that asserts the buggy silence. With auto-landing, that test would have locked the bug in | **caught** (`multi-repo-parent`) |
+| B2 (064a7d5) | B2 itself missed. Three other catches, all upheld by the assessor | not run |
+| clean 6c7a887 | nothing reported (no false alarm) | not run |
+| B3 | not run (needs the VM) | |
+| B4 | skipped (a root commit has no parent) | |
+
+The catches that are still in today's code, all checked at HEAD:
+
+1. `outerpale-startup` `keep_out` glues `/.work/` onto an exclude file's last line when that line has no newline. Found in both B1 runs. **Fixed in this PR** (0.5.1), and the test landed as `tests/jit/landed/exclude-no-newline.sh`.
+2. `outerpale-mem`, `outerpale-mem-global` and `magister` treat a successful upload as failed when the file is named `…-error-…`. **Fixed** (0.2.1, 0.1.1, 0.1.1), with the test landed.
+3. The memory loaders' "read-only" guard didn't cover the OneDrive connector's write tools. **Fixed** in both memory plugins, with the test landed.
+4. In a git worktree, `outerpale-mem` names the memory folder after the worktree, not the repository (and `outerpale-startup` does the same for `projects/<repo>.md`). **Not fixed**; left for its own change.
+
+What this says:
+
+- **Oracle scavenging decides the catch.** The same generator missed B1 without the cloud facts and caught it with them. The `jit:run` skill passes them, and the generator now warns against asserting silence in an unusual environment.
+- **Precision so far** is 6 of 6 reported catches upheld, with 0 false alarms on the clean commit tried. That is too few runs to trust. The 20-PR trial is the real measure.
+- **Each run's cost:** about 85–135k subagent tokens and 1.5–2.5 minutes for the generator, plus 25–40 seconds for the assessor.
+
 ## 7a. Not built yet
 
 - **`vm-paths`** in the `JiT:` line: the slow VM run when a diff touches `cloud/`. Only `invariants` and `skip` are read today.

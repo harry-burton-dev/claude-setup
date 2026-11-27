@@ -1,6 +1,6 @@
 {
   "name": "outerpale-mem-global",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Global memory every Claude Code session shares, in any repository or none: who Harry is, how he works, lessons that hold across projects, his environment and recurring friction. Kept in OneDrive Claude/memory/_global/, loaded at session start, consolidated nightly.",
   "author": {
     "name": "Harry"

@@ -36,6 +36,7 @@ Write at most one test per risk, and at most 8 in all.
 - Use the repository's own language, framework and conventions, so that a test which passes can be kept as a permanent test.
 - Each test is standalone and deterministic. It needs no network, no real `HOME` (the runner gives it an empty one), and no credentials.
 - Never weaken a test to make it pass. You don't run anything against the change yourself; the runner does that.
+- Be wary of asserting that the code does nothing, or stays silent, in an unusual environment. Unless the intent says that is right, it is usually the bug. A passing test of it gets landed and locks the bug in. (In a backtest, a generator given no environment facts asserted that a hook stayed silent in a cloud session's non-git parent folder, which was exactly the bug.)
 - When the code a test exercises doesn't exist (a missing function, file, flag or command), the test must **exit 77**, or say so through `subject` or `exists` (below). That is how the runner tells "didn't exist before this change" from "fails".
 
 Write each test to `.work/jit/<sha>/tests/<path>`. `<path>` is where it would live in the repository, somewhere the repository's own test command picks it up. Write nothing outside `.work/jit/`.

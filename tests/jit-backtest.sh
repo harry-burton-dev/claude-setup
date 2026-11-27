@@ -64,17 +64,14 @@ case "$step" in
     done < <(rows "$clean")
     echo "Run the jit:run skill in each worktree above, giving the generator only that commit's message as intent; then: $0 --repo $repo --layer 2 score" ;;
   score)
+    # A report's catches are listed beside the row's bug: whether one of them is that bug is a person's call.
     report() { local wt="$bt/$1"; [ -d "$wt" ] || return 0; cat "$wt/.work/jit/$(git -C "$wt" rev-parse HEAD)/report.json" 2>/dev/null || true; }
-    ncatch() { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>console.log(s?(JSON.parse(s).catches||[]).length:-1))'; }
-    while IFS=$'\t' read -r id _; do
-      n="$(report "$id" | ncatch)"; total=$((total + 1))
-      if [ "$n" = -1 ]; then printf '%s not run\n' "$id"; elif [ "$n" -gt 0 ]; then printf '%s caught (%d)\n' "$id" "$n"; caught=$((caught + 1)); else printf '%s missed\n' "$id"; fi
+    show() { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{if(!s)return console.log("not run");const r=JSON.parse(s);if(r.status==="skipped")return console.log("skipped: "+r.reason);const c=r.catches||[];console.log(c.length?"reported "+c.length+": "+c.map(x=>x.id+" ("+x.risk+")").join("; "):"nothing reported")})'; }
+    while IFS=$'\t' read -r id _ _ _ what; do
+      printf '%s %s\n    the bug: %s\n' "$id" "$(report "$id" | show)" "$what"
     done < <(rows "$bench")
     while IFS=$'\t' read -r rev _; do
-      n="$(report "clean-$rev" | ncatch)"
-      if [ "$n" = -1 ]; then printf 'clean-%s not run\n' "$rev"; continue; fi
-      cleans=$((cleans + 1)); [ "$n" -gt 0 ] && { printf 'clean-%s false-alarm (%d)\n' "$rev" "$n"; alarms=$((alarms + n)); }
-    done < <(rows "$clean")
-    printf 'layer 2: caught=%d/%d false_alarms=%d over %d clean commit(s)\n' "$caught" "$total" "$alarms" "$cleans" ;;
+      printf 'clean-%s %s\n' "$rev" "$(report "clean-$rev" | show)"
+    done < <(rows "$clean") ;;
   *) echo "--layer 2 needs prepare or score" >&2; exit 2 ;;
 esac

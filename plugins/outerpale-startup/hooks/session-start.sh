@@ -14,7 +14,12 @@ one_repo() {  # $1 the repository root, $2 how to show its folder ("." or its na
   exclude="$(git -C "$root" rev-parse --git-path info/exclude)"
   case "$exclude" in /*) ;; *) exclude="$root/$exclude" ;; esac
   mkdir -p "$(dirname "$exclude")"
-  keep_out() { grep -qx "$1" "$exclude" 2>/dev/null || echo "$1" >> "$exclude"; }
+  keep_out() {
+    grep -qx "$1" "$exclude" 2>/dev/null && return
+    # A hand-edited exclude file may lack its last newline; don't glue the pattern onto that line.
+    [ -s "$exclude" ] && [ -n "$(tail -c1 "$exclude")" ] && echo >> "$exclude"
+    echo "$1" >> "$exclude"
+  }
   keep_out '/.work/'
   [ -f "$root/CLAUDE.md" ] && return 0
   name="$(basename "$root")"
