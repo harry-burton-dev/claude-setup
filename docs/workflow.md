@@ -14,6 +14,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 | Machine | `install.sh` here, run by hand on the PC and server, and by `cloud/bootstrap.sh` → `cloud/setup.sh` on each cloud VM build | Once per install or VM build | `~/.claude/CLAUDE.md` (generic rules), the plugins in `plugins.lock`, Node 26 and tools on cloud VMs |
 | Session | The `outerpale-startup` plugin's SessionStart hook | Every session start | The repository's project `CLAUDE.md`, copied from `projects/<repo>.md`, and `.work/` kept out of git |
 | Project | `projects/<repo>.md` here | Loaded as `./CLAUDE.md` | That project's commands, rules and gotchas |
+| Global memory | OneDrive `Claude/memory/_global/` | Loaded in every session by `outerpale-mem-global`; consolidated nightly | About Harry, how he works, his environment, cross-project lessons |
 | Memory | OneDrive `Claude/memory/<repo>/` | Loaded at session start by `outerpale-mem`; consolidated nightly | What past sessions learned: decisions, preferences, patterns, known issues |
 
 ## Plugins every machine installs (`plugins.lock`)
@@ -24,6 +25,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 | `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only, Langfuse traces. The contract below needs 0.5.0 or later |
 | `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance; the intent reviewer (below) |
 | `outerpale-mem` | this repository's marketplace | Memory across sessions, in OneDrive (`docs/memory.md`) |
+| `outerpale-mem-global` | this repository's marketplace | Global memory every session shares (`docs/memory.md`) |
 | `magister` | this repository's marketplace | Magister, the background second perspective (below) |
 
 ## A session, start to finish

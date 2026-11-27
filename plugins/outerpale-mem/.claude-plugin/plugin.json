@@ -1,6 +1,6 @@
 {
   "name": "outerpale-mem",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Memory that survives cloud sessions: each repository's memory lives in OneDrive Claude/memory/<repo>/ in Claude Code's auto-memory format, is loaded at session start, gains proposals as sessions learn, and is consolidated by a nightly dream.",
   "author": {
     "name": "Harry"
