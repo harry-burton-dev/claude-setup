@@ -29,26 +29,6 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/suggest.js\" bash"
           }
         ]
-      },
-      {
-        "matcher": "mcp__.+__sharepoint_upload_file",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/suggest.js\" uploaded"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/suggest.js\" guard"
-          }
-        ]
       }
     ]
   }

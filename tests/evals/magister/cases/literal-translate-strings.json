@@ -1,0 +1,21 @@
+{
+  "kind": "literal",
+  "brief": {
+    "work": "Applying the rule 'all strings must be translated'",
+    "goal": "Every user sees the app in their language",
+    "decision": "Log messages, metric names and database enum keys are now passed through the translation function too."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Applying the rule 'all strings must be translated'\n\n## Goal\n\nEvery user sees the app in their language.\n\n## Design\n\nLog messages, metric names and database enum keys are now passed through the translation function too.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "log",
+      "key",
+      "user-facing",
+      "intent",
+      "enum",
+      "metric"
+    ]
+  }
+}

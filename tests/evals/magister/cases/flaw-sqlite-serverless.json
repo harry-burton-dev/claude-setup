@@ -1,0 +1,19 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "Storage for a small SaaS on serverless functions",
+    "goal": "Simple, cheap storage that keeps data safe",
+    "decision": "Use one SQLite file on a shared network volume, written by every function instance (up to 50 at once)."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Storage for a small SaaS on serverless functions\n\n## Goal\n\nSimple, cheap storage that keeps data safe.\n\n## Design\n\nUse one SQLite file on a shared network volume, written by every function instance (up to 50 at once).\n"
+  },
+  "expect": {
+    "mention_any": [
+      "concurren",
+      "lock",
+      "multiple (?:instances|writers)",
+      "network (?:volume|file)"
+    ]
+  }
+}

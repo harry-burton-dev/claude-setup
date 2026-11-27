@@ -13,3 +13,6 @@ outerpale-devops@outerpale harry-burton-dev/outerpale-devops
 
 # Session start work for every repository: fetches its project CLAUDE.md from projects/. Kept in this repository.
 outerpale-startup@claude-setup harry-burton-dev/claude-setup
+
+# Magister: a background second perspective at design, UI and decision moments; findings go to OneDrive Claude/magister/. Kept in this repository.
+magister@claude-setup harry-burton-dev/claude-setup

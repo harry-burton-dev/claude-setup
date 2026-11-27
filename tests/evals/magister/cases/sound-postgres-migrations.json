@@ -1,0 +1,20 @@
+{
+  "kind": "sound",
+  "brief": {
+    "work": "Database for a new web app",
+    "goal": "Reliable storage the team already knows",
+    "decision": "Postgres, schema changes as versioned migrations run in CI before deploy, daily backups tested monthly by a restore."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Database for a new web app\n\n## Goal\n\nReliable storage the team already knows.\n\n## Design\n\nPostgres, schema changes as versioned migrations run in CI before deploy, daily backups tested monthly by a restore.\n"
+  },
+  "expect": {
+    "must_not": [
+      "critical",
+      "must fix",
+      "blocker",
+      "serious flaw",
+      "will break"
+    ]
+  }
+}

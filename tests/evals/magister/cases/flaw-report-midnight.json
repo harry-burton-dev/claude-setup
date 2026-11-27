@@ -1,0 +1,18 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "A daily usage report emailed to customers",
+    "goal": "Each customer gets yesterday's numbers every morning",
+    "decision": "Run the report job at 00:00 server time (London) for all customers, who are in 40 countries."
+  },
+  "files": {
+    "docs/design/proposal.md": "# A daily usage report emailed to customers\n\n## Goal\n\nEach customer gets yesterday's numbers every morning.\n\n## Design\n\nRun the report job at 00:00 server time (London) for all customers, who are in 40 countries.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "time ?zone",
+      "utc",
+      "local time"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "kind": "literal",
+  "brief": {
+    "work": "Applying the rule 'every PR must add a test'",
+    "goal": "Changes are covered by tests",
+    "decision": "A PR fixing a typo in README.md adds a test that asserts true == true, to satisfy the rule."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Applying the rule 'every PR must add a test'\n\n## Goal\n\nChanges are covered by tests.\n\n## Design\n\nA PR fixing a typo in README.md adds a test that asserts true == true, to satisfy the rule.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "intent",
+      "spirit",
+      "meaningless",
+      "readme",
+      "exempt",
+      "no value",
+      "literal"
+    ]
+  }
+}

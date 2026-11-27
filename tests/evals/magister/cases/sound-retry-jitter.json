@@ -1,0 +1,20 @@
+{
+  "kind": "sound",
+  "brief": {
+    "work": "Retrying calls to a flaky upstream",
+    "goal": "Recover from blips without overloading it",
+    "decision": "Retry idempotent GETs up to 3 times with exponential backoff and full jitter, capped at 10 seconds; no retries on 4xx."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Retrying calls to a flaky upstream\n\n## Goal\n\nRecover from blips without overloading it.\n\n## Design\n\nRetry idempotent GETs up to 3 times with exponential backoff and full jitter, capped at 10 seconds; no retries on 4xx.\n"
+  },
+  "expect": {
+    "must_not": [
+      "critical",
+      "must fix",
+      "blocker",
+      "serious flaw",
+      "will break"
+    ]
+  }
+}

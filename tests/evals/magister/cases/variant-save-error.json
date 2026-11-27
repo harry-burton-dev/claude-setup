@@ -1,0 +1,12 @@
+{
+  "kind": "variant",
+  "brief": {
+    "work": "Feedback when saving fails",
+    "goal": "Users understand what went wrong and can recover",
+    "decision": "A red toast reads 'Error 500' for 3 seconds and disappears."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Feedback when saving fails\n\n## Goal\n\nUsers understand what went wrong and can recover.\n\n## Design\n\nA red toast reads 'Error 500' for 3 seconds and disappears.\n"
+  },
+  "expect": {}
+}

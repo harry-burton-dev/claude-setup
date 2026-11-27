@@ -127,39 +127,50 @@ for p in 'That'"'"'s wrong, use the v2 endpoint' 'I told you the tests live in s
 done
 ok "agreement and ordinary instructions are not corrections; clear corrections are"
 
-# The companion: design and decision moments prompt Claude to consider it, in the background.
-out="$(sug prompt '{"session_id":"c1","prompt":"I think we should design the settings page as a two-column layout"}')"
-grep -q 'outerpale-startup:companion' <<<"$out" || fail "a design moment did not mention the companion"
-grep -q 'background' <<<"$out" || fail "the companion was not to run in the background"
-[ -z "$(sug prompt '{"session_id":"c1","prompt":"run the tests"}')" ] || fail "an ordinary prompt mentioned the companion"
-ok "a design or decision moment suggests the companion, in the background; ordinary prompts don't"
+# Magister, a plugin of its own: design and decision moments prompt Claude to consider it, in the background.
+mag="$repo/plugins/magister/hooks/magister.js"
+mg() { (cd "$work/demo" && HOME="$work/maghome" node "$mag" "$1" <<<"$2"); }
+out="$(mg prompt '{"session_id":"c1","prompt":"I think we should design the settings page as a two-column layout"}')"
+grep -q 'magister:magister' <<<"$out" || fail "a design moment did not mention Magister"
+grep -q 'background' <<<"$out" || fail "Magister was not to run in the background"
+[ -z "$(mg prompt '{"session_id":"c1","prompt":"run the tests"}')" ] || fail "an ordinary prompt mentioned Magister"
+[ -z "$(mg prompt '{"session_id":"c1","prompt":"<task-notification>design review done</task-notification>"}')" ] || fail "a notification counted as a design moment"
+[ -z "$(sug prompt '{"session_id":"c1","prompt":"I think we should design the settings page"}')" ] || fail "outerpale-startup still speaks for Magister"
+ok "a design or decision moment suggests Magister, in the background; ordinary prompts and outerpale-startup don't"
 
-# The companion writes only to .work/ and its outbox, and runs no shell commands.
-guard() { (cd "$work/demo" && HOME="$work/sughome" node "$suggest" guard <<<"$1"); }
-cw() { printf '{"agent_type":"outerpale-startup:companion","cwd":"%s","tool_name":"%s","tool_input":{"file_path":"%s","command":"ls"}}' "$work/demo" "$1" "$2"; }
-grep -q '"deny"' <<<"$(guard "$(cw Write "$work/demo/src/app.ts")")" || fail "the companion could write into the code"
-grep -q '"deny"' <<<"$(guard "$(cw Bash '')")" || fail "the companion could run a shell command"
-[ -z "$(guard "$(cw Write "$work/demo/.work/alt/settings-v2.html")")" ] || fail "the companion could not write into .work/"
-[ -z "$(guard "$(cw Write "$work/sughome/.companion/outbox/2026-11-27-x.md")")" ] || fail "the companion could not write its outbox"
-[ -z "$(guard "{\"cwd\":\"$work/demo\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$work/demo/src/app.ts\"}}")" ] || fail "the main session was restricted"
-ok "the companion writes only to .work/ and its outbox, and runs no shell; the main session is unaffected"
+# Magister writes only to .work/ and its outbox, and runs no shell commands.
+mw() { printf '{"agent_type":"magister:magister","cwd":"%s","tool_name":"%s","tool_input":{"file_path":"%s","command":"ls"}}' "$work/demo" "$1" "$2"; }
+grep -q '"deny"' <<<"$(mg guard "$(mw Write "$work/demo/src/app.ts")")" || fail "Magister could write into the code"
+grep -q '"deny"' <<<"$(mg guard "$(mw Bash '')")" || fail "Magister could run a shell command"
+[ -z "$(mg guard "$(mw Write "$work/demo/.work/alt/settings-v2.html")")" ] || fail "Magister could not write into .work/"
+[ -z "$(mg guard "$(mw Write "$work/maghome/.magister/outbox/2026-11-27-x.md")")" ] || fail "Magister could not write its outbox"
+[ -z "$(mg guard "{\"cwd\":\"$work/demo\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$work/demo/src/app.ts\"}}")" ] || fail "the main session was restricted"
+out="$(cd "$work/demo" && HOME="$work/maghome" MAGISTER_HOME="$work/evalhome" node "$mag" guard <<<"$(mw Write "$work/evalhome/outbox/x.md")")"
+[ -z "$out" ] || fail "MAGISTER_HOME did not move the outbox"
+ok "Magister writes only to .work/ and its outbox (MAGISTER_HOME moves it), and runs no shell; the main session is unaffected"
 
-# Unsent findings from an earlier session are flagged at session start.
-mkdir -p "$work/hookhome/.companion/outbox" && touch "$work/hookhome/.companion/outbox/2026-11-27-a.md"
-out="$(cd "$work/committed" && HOME="$work/hookhome" bash "$hook")"
-grep -q '1 companion finding' <<<"$out" || fail "an unsent finding was not flagged at session start"
-out="$(cd "$work" && HOME="$work/hookhome" bash "$hook")"
-grep -q '1 companion finding' <<<"$out" || fail "an unsent finding was not flagged outside a git repository"
-rm "$work/hookhome/.companion/outbox/2026-11-27-a.md"
-[ -z "$(cd "$work/committed" && HOME="$work/hookhome" bash "$hook")" ] || fail "an empty outbox was mentioned"
-ok "unsent companion findings are flagged at session start, wherever the session is"
-mkdir -p "$work/sughome/.companion/outbox" && touch "$work/sughome/.companion/outbox/2026-11-27-b.md"
+# Unsent findings from an earlier session are flagged at session start, wherever it is.
+mkdir -p "$work/maghome/.magister/outbox" && touch "$work/maghome/.magister/outbox/2026-11-27-a.md"
+grep -q '1 Magister finding' <<<"$(mg session-start '{}')" || fail "an unsent finding was not flagged at session start"
+rm "$work/maghome/.magister/outbox/2026-11-27-a.md"
+[ -z "$(mg session-start '{}')" ] || fail "an empty outbox was mentioned"
+ok "unsent Magister findings are flagged at session start"
+touch "$work/maghome/.magister/outbox/2026-11-27-b.md"
 up() { printf '{"tool_name":"mcp__Microsoft_365__sharepoint_upload_file","tool_input":{"filename":"%s"},"tool_response":"%s"}' "$1" "$2"; }
-(cd "$work/demo" && HOME="$work/sughome" node "$suggest" uploaded <<<"$(up 2026-11-27-b.md 'Error: rate limited')")
-[ -f "$work/sughome/.companion/outbox/2026-11-27-b.md" ] || fail "a failed upload removed the outbox file"
-(cd "$work/demo" && HOME="$work/sughome" node "$suggest" uploaded <<<"$(up 2026-11-27-b.md 'File uploaded. webUrl: https://x')")
-[ ! -e "$work/sughome/.companion/outbox/2026-11-27-b.md" ] || fail "a successful upload left the outbox file"
+mg uploaded "$(up 2026-11-27-b.md 'Error: rate limited')"
+[ -f "$work/maghome/.magister/outbox/2026-11-27-b.md" ] || fail "a failed upload removed the outbox file"
+mg uploaded "$(up 2026-11-27-b.md 'File uploaded (12 bytes).\nwebUrl: https://x')"
+[ ! -e "$work/maghome/.magister/outbox/2026-11-27-b.md" ] || fail "a successful upload left the outbox file"
 ok "a successful OneDrive upload clears its outbox file; a failed one keeps it"
+
+# Magister's eval grader, on fixtures (no model), and every case well formed.
+node --test "$repo/tests/evals/magister/grade.test.js" >/dev/null 2>&1 || fail "Magister's eval grader"
+node -e '
+const fs=require("fs"),p=process.argv[1]+"/tests/evals/magister/cases/";
+for (const f of fs.readdirSync(p)) { const c=JSON.parse(fs.readFileSync(p+f));
+  if (!["flaw","literal","sound","variant"].includes(c.kind)||!c.brief||!c.brief.goal||!Object.keys(c.files||{}).length) throw new Error(f);
+  if (["flaw","literal"].includes(c.kind)&&!(c.expect.mention_any||[]).length) throw new Error(f); }' "$repo" || fail "a Magister eval case is malformed"
+ok "Magister's eval grader passes its tests, and every eval case is well formed"
 
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" || fail "shellcheck"

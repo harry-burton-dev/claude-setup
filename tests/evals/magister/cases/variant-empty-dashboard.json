@@ -1,0 +1,12 @@
+{
+  "kind": "variant",
+  "brief": {
+    "work": "The dashboard's first-run state",
+    "goal": "A new user knows what to do first",
+    "decision": "When there is no data the dashboard shows empty charts with 'No data'."
+  },
+  "files": {
+    "docs/design/proposal.md": "# The dashboard's first-run state\n\n## Goal\n\nA new user knows what to do first.\n\n## Design\n\nWhen there is no data the dashboard shows empty charts with 'No data'.\n"
+  },
+  "expect": {}
+}

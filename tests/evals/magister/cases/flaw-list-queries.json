@@ -1,0 +1,20 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "The orders list page",
+    "goal": "The page loads in under 300 ms for 500 orders",
+    "decision": "Fetch the 500 orders, then for each order fetch its customer and its items to render the row."
+  },
+  "files": {
+    "docs/design/proposal.md": "# The orders list page\n\n## Goal\n\nThe page loads in under 300 ms for 500 orders.\n\n## Design\n\nFetch the 500 orders, then for each order fetch its customer and its items to render the row.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "n\\+1",
+      "per row",
+      "batch",
+      "join",
+      "eager"
+    ]
+  }
+}

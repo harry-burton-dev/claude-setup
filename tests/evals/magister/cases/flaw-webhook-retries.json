@@ -1,0 +1,18 @@
+{
+  "kind": "flaw",
+  "brief": {
+    "work": "Webhook delivery for order events",
+    "goal": "Partners receive every order event reliably",
+    "decision": "Retry a failed POST up to 5 times with backoff. Partners create an order record for each event they receive."
+  },
+  "files": {
+    "docs/design/proposal.md": "# Webhook delivery for order events\n\n## Goal\n\nPartners receive every order event reliably.\n\n## Design\n\nRetry a failed POST up to 5 times with backoff. Partners create an order record for each event they receive.\n"
+  },
+  "expect": {
+    "mention_any": [
+      "idempot",
+      "duplicate",
+      "dedup"
+    ]
+  }
+}
