@@ -10,6 +10,7 @@ In a cloud session, `~/.claude/claude-setup.status` says which tools this VM was
 - If there is more than one reading, say so; don't pick one silently.
 - If a simpler approach exists, say so, and push back when it is warranted.
 - If something is unclear, stop, name what is confusing, and ask.
+- Treat design talk as work in progress. Don't build, commit or record what I say as decided until I say to go ahead.
 
 ## 2. Simplicity first
 
