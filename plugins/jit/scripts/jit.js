@@ -36,19 +36,22 @@ function base(dir) {
   return tryGit(dir, 'rev-parse', 'HEAD^'); // on the default branch itself: the last commit
 }
 
-// The repository's JiT settings: an optional "JiT:" line in its CLAUDE.md, e.g.
-//   JiT: invariants tests/invariants.sh; skip vendor/**, *.lock
+// The repository's JiT settings: an optional "JiT:" line in its CLAUDE.md, or else in claude-setup's
+// projects/<repo>.md (for a repository whose own CLAUDE.md is something else, like claude-setup's), e.g.
+//   JiT: invariants tests/invariants.sh; skip vendor/**, *.lock; vm-paths cloud/
 function config(dir) {
-  const out = { skip: [...DEFAULT_SKIP], invariants: null };
-  let text = '';
-  try { text = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8'); } catch {}
-  const line = (text.match(/^JiT:\s*(.+)$/m) || [])[1];
+  const out = { skip: [...DEFAULT_SKIP], invariants: null, vm: [] };
+  const jitLine = f => { try { return (fs.readFileSync(f, 'utf8').match(/^JiT:\s*(.+)$/m) || [])[1]; } catch { return undefined; } };
+  let setup = '';
+  try { setup = fs.readFileSync(path.join(os.homedir(), '.claude', 'claude-setup-dir'), 'utf8').trim(); } catch {}
+  const line = jitLine(path.join(dir, 'CLAUDE.md')) || (setup && jitLine(path.join(setup, 'projects', `${repoName(dir)}.md`)));
   if (!line) return out;
   for (const part of line.split(';').map(s => s.trim()).filter(Boolean)) {
     const [key, ...rest] = part.split(/\s+/);
     const value = rest.join(' ');
     if (key === 'skip') out.skip.push(...value.split(',').map(s => s.trim()).filter(Boolean));
     if (key === 'invariants') out.invariants = value;
+    if (key === 'vm-paths') out.vm.push(...value.split(',').map(s => s.trim()).filter(Boolean).map(p => p.endsWith('/') ? `${p}**` : p));
   }
   return out;
 }
@@ -84,7 +87,8 @@ function triage(dir) {
   else if (!code.length) { decision = 'skip'; reason = 'only docs or other skipped paths changed'; }
   else if (lines <= TINY_LINES && code.length === 1) { decision = 'skip'; reason = `tiny change (${lines} line(s))`; }
   if (decision === 'skip') writeReport(dir, sha, { status: 'skipped', reason, by: 'triage' });
-  return { sha, parent, decision, reason, files: code.map(f => f.file), invariants: cfg.invariants, dir: reportDir(dir, sha) };
+  const vm = code.some(f => skipped(f.file, cfg.vm));
+  return { sha, parent, decision, reason, files: code.map(f => f.file), invariants: cfg.invariants, vm, dir: reportDir(dir, sha) };
 }
 
 // One test at one revision: pass, fail, timeout, or nobuild when the code it exercises isn't there:
@@ -95,10 +99,36 @@ function sh(tree, command, timeout) {
     env: { ...process.env, HOME: fs.mkdtempSync(path.join(path.dirname(tree), 'home-')) } });
   return { r, output: ((r.stdout || '') + (r.stderr || '')).slice(-2000) };
 }
-function runOne(tree, t) {
+// A test marked "vm" runs as root in a fresh Ubuntu 24.04 container, the way a cloud VM's setup
+// script does, with the revision at /repo. The image (git, node, curl) is built once per machine.
+const VM_IMAGE = 'jit-vm:ubuntu-24.04';
+const VM_TIMEOUT_S = 600;
+const docker = (args, timeout) => spawnSync('docker', args, { encoding: 'utf8', timeout: (timeout || 60) * 1000 });
+function vmImage() {
+  if (docker(['image', 'inspect', VM_IMAGE]).status === 0) return VM_IMAGE;
+  const name = `jit-vm-build-${process.pid}`;
+  for (const base of ['ubuntu:24.04', 'mirror.gcr.io/library/ubuntu:24.04']) { // Docker Hub rate-limits; the mirror doesn't
+    docker(['rm', '-f', name]);
+    const built = docker(['run', '--name', name, base, 'bash', '-c',
+      'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git ca-certificates curl nodejs npm >/dev/null'], 900);
+    const ok = built.status === 0 && docker(['commit', name, VM_IMAGE], 120).status === 0;
+    docker(['rm', '-f', name]);
+    if (ok) return VM_IMAGE;
+  }
+  return null;
+}
+function vmSh(image, tree, command, timeout) {
+  const name = `jit-vm-${process.pid}-${Date.now()}`;
+  const r = docker(['run', '--rm', '--name', name, '-v', `${tree}:/repo`, '-w', '/repo', image, 'bash', '-c', command], timeout);
+  if (r.error) docker(['rm', '-f', name]);
+  return { r, output: ((r.stdout || '') + (r.stderr || '')).slice(-2000) };
+}
+
+function runOne(tree, t, vm) {
   if ((t.subject || []).some(s => !fs.existsSync(path.join(tree, s)))) return { outcome: 'nobuild', output: '' };
   if (t.exists && sh(tree, t.exists, 30).r.status !== 0) return { outcome: 'nobuild', output: '' };
-  const { r, output } = sh(tree, t.cmd, t.timeout || TIMEOUT_S);
+  if (t.vm && !vm) return { outcome: 'novm', output: '' };
+  const { r, output } = t.vm ? vmSh(vm, tree, t.cmd, t.timeout || VM_TIMEOUT_S) : sh(tree, t.cmd, t.timeout || TIMEOUT_S);
   if (r.error && r.error.code === 'ETIMEDOUT') return { outcome: 'timeout', output };
   if (r.status === NOBUILD) return { outcome: 'nobuild', output };
   return { outcome: r.status === 0 ? 'pass' : 'fail', code: r.status, output };
@@ -120,6 +150,7 @@ function envFailure(res) {
 // Harden and Catch, Table 3, with one choice of ours: a test that passes on both revisions
 // says nothing about this change, so it is dropped rather than landed (it would only grow the suite).
 function decide(p, r) {
+  if (r === 'novm' || p === 'novm') return ['discard', "needs the VM run, and Docker isn't available here"];
   if (r === 'nobuild') return ['signal', 'cannot run on this revision'];
   if (r === 'pass') return p === 'pass' ? ['discard', 'passes before and after: says nothing about this change'] : ['land', p === 'nobuild' ? 'tests new functionality' : 'tests what this change fixed'];
   if (p === 'pass') return ['report', 'passed before this change, fails after: a possible regression'];
@@ -142,6 +173,7 @@ function run(dir) {
   const manifest = readJson(path.join(work, 'tests.json'));
   const cfg = config(dir);
   const trees = { R: worktree(dir, sha, 'wt-R'), P: worktree(dir, parent, 'wt-P') };
+  const vm = (manifest.tests || []).some(t => t.vm) ? vmImage() : null;
   const results = [];
   try {
     if (cfg.invariants) {
@@ -154,13 +186,13 @@ function run(dir) {
       for (const k of ['P', 'R']) {
         fs.mkdirSync(path.dirname(path.join(trees[k], t.file)), { recursive: true });
         fs.copyFileSync(src, path.join(trees[k], t.file));
-        out[k] = runOne(trees[k], t);
+        out[k] = runOne(trees[k], t, vm);
       }
       let [decision, why] = decide(out.P.outcome, out.R.outcome);
       const env = out.R.outcome !== 'pass' && envFailure(out.R);
       if (env && decision !== 'signal') [decision, why] = ['discard', `environment: ${env}`];
-      if (decision === 'report' && [1, 2].some(() => runOne(trees.R, t).outcome === 'pass')) [decision, why] = ['discard', 'flaky on this revision'];
-      results.push({ id: t.id, risk: t.risk, file: t.file, cmd: t.cmd, P: out.P.outcome, R: out.R.outcome, decision, why, output: out.R.output });
+      if (decision === 'report' && [1, 2].some(() => runOne(trees.R, t, vm).outcome === 'pass')) [decision, why] = ['discard', 'flaky on this revision'];
+      results.push({ id: t.id, risk: t.risk, file: t.file, cmd: t.cmd, vm: !!t.vm, P: out.P.outcome, R: out.R.outcome, decision, why, output: out.R.output });
     }
   } finally {
     for (const wt of Object.values(trees)) tryGit(dir, 'worktree', 'remove', '--force', wt);
@@ -189,7 +221,8 @@ function finish(dir) {
       if (!fs.existsSync(dest)) { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.copyFileSync(path.join(work, 'tests', r.file), dest); landed.push(r.file); }
     }
   }
-  const report = { status: 'ran', tests: results.length, catches: catches.map(({ id, risk, file, cmd, P, R, why }) => ({ id, risk, file, cmd, P, R, why })), landed };
+  const notRun = results.filter(r => r.P === 'novm' || r.R === 'novm').map(r => r.id); // VM tests with no Docker: say so
+  const report = { status: 'ran', tests: results.length, catches: catches.map(({ id, risk, file, cmd, P, R, why }) => ({ id, risk, file, cmd, P, R, why })), landed, notRun };
   writeReport(dir, sha, report);
   return report;
 }

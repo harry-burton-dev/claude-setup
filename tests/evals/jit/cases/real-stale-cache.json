@@ -1,0 +1,18 @@
+{
+  "kind": "real-bug",
+  "intent": "Cache getUser so profile pages load faster. Changes saved with updateUser must still show straight away (docs/users.md).",
+  "files": {
+    "users.js": "const cache = new Map();\nfunction getUser(db, id) {\n  if (!cache.has(id)) cache.set(id, { ...db.users[id] });\n  return cache.get(id);\n}\nfunction updateUser(db, id, fields) {\n  Object.assign(db.users[id], fields);\n}\nmodule.exports = { getUser, updateUser };\n",
+    "docs/users.md": "# Users\n\nA change saved with `updateUser` is visible to the next `getUser` call.\n"
+  },
+  "test": {
+    "id": "real-stale-cache",
+    "risk": "the new cache serves stale users after an update",
+    "file": "test/users.test.js",
+    "body": "const assert = require('assert');\nconst { getUser, updateUser } = require('../users');\nconst db = { users: { 1: { name: 'Ann' } } };\ngetUser(db, 1);\nupdateUser(db, 1, { name: 'Bea' });\nassert.strictEqual(getUser(db, 1).name, 'Bea', 'an update must show on the next getUser');\n",
+    "P": "pass",
+    "R": "fail",
+    "output": "AssertionError: an update must show on the next getUser\n  'Ann' !== 'Bea'"
+  },
+  "expect": "should-fail"
+}

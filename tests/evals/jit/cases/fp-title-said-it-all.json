@@ -1,0 +1,17 @@
+{
+  "kind": "false-positive",
+  "intent": "add location details to lookup query",
+  "files": {
+    "lookup.js": "// Looks up a product by id.\nfunction lookup(db, id) {\n  const row = db.products.find(p => p.id === id);\n  return { id: row.id, name: row.name, location: row.location };\n}\nmodule.exports = { lookup };\n"
+  },
+  "test": {
+    "id": "fp-title-said-it-all",
+    "risk": "lookup started leaking a field it never returned",
+    "file": "test/lookup.test.js",
+    "body": "const assert = require('assert');\nconst { lookup } = require('../lookup');\nconst db = { products: [{ id: 1, name: 'a', location: 'Leeds' }] };\nassert.strictEqual(lookup(db, 1).location, undefined, 'lookup must not return a location');\n",
+    "P": "pass",
+    "R": "fail",
+    "output": "AssertionError: lookup must not return a location\n  'Leeds' !== undefined"
+  },
+  "expect": "should-pass"
+}

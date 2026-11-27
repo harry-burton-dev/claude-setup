@@ -56,6 +56,8 @@ JiT testing, `jit:run`, runs once before every PR in every repository, on top of
 - **Settings:** a repository's optional `JiT:` line in its project `CLAUDE.md` names fixed invariant checks and extra paths to skip.
 - **claude-setup's own fixed check:** `tests/hook-contract.sh`, which runs every SessionStart hook in the three session shapes.
 - **Backtests:** `tests/jit-backtest.sh` replays the bugs that got through, from `tests/jit/benchmarks/<repo>.tsv`.
+- **VM tests:** a change under the `JiT:` line's `vm-paths` gets tests run as root in a fresh Ubuntu 24.04 container. This needs Docker.
+- **Evals:** `tests/evals/jit/` checks the assessor on 8 planted catches. Run `node tests/evals/jit/run.js` again when its prompt or the model changes.
 
 ## Cloud environments
 

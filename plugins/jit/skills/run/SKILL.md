@@ -30,6 +30,8 @@ Start the `jit:generator` agent in the foreground. Give it:
 
 The generator also reads the repository's `CLAUDE.md` and the memory this session loaded. Pass on any cloud or environment facts that bear on the change, for example that a cloud session with several repositories starts in their non-git parent folder.
 
+If the triage says `vm: true`, the change touches the repository's `vm-paths`, such as a cloud setup script. Tell the generator, so that it marks the tests that need a cloud VM's conditions with `"vm": true`: root, a fresh Ubuntu 24.04, another tool earlier on `PATH`. Those tests run in a container, and need Docker.
+
 It writes `tests.json` and the test files under `.work/jit/<sha>/tests/`.
 
 ## 3. Run
@@ -41,7 +43,7 @@ Run `node jit.js run`. It runs each test, and the repository's `invariants` chec
 | `report` | Passed before, or didn't exist before, and fails now: a candidate catch |
 | `land` | Fails or doesn't exist before, and passes now: it pins what this change does |
 | `signal` | Can't run on this revision |
-| `discard` | Passes on both, fails on both, flaky, or failed for environment reasons |
+| `discard` | Passes on both, fails on both, flaky, failed for environment reasons, or needs the VM with no Docker here |
 
 ## 4. Assess the candidate catches
 
@@ -61,6 +63,6 @@ Run `node jit.js finish`.
   - If it's a real bug, fix it on the branch. The catching test then passes. Keep it: commit it with the fix as a regression test.
   - If it's a false positive, say so in one line.
 - **Landed tests:** they go in the PR. Make sure the repository's own test command picks them up and passes, then commit them.
-- **Tell Harry** in a short note at the end of your reply, and put the same lines in the PR body under "JiT". Cover the catches (risk, before and after, and what you did) and the tests landed. Or say "JiT: ran N tests, nothing caught" or "JiT: skipped, <reason>".
+- **Tell Harry** in a short note at the end of your reply, and put the same lines in the PR body under "JiT". Cover the catches (risk, before and after, and what you did) and the tests landed. Or say "JiT: ran N tests, nothing caught" or "JiT: skipped, <reason>". If the report's `notRun` lists VM tests, say they didn't run because Docker isn't available here.
 
 Committing after the report is fine. The hook accepts a report from an earlier commit on the branch when only landed tests, or a tiny change, came after it.

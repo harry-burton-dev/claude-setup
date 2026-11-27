@@ -1,0 +1,17 @@
+{
+  "kind": "false-positive",
+  "intent": "Add an integer add helper.",
+  "files": {
+    "math.sh": "add() { echo $(( $1 + $2 )); }\n"
+  },
+  "test": {
+    "id": "fp-wrong-test",
+    "risk": "add returns the wrong sum",
+    "file": "tests/jit/add.sh",
+    "body": ". ./math.sh\n[ \"$(add 2 2)\" = 5 ] || { echo \"FAIL: add 2 2 gave $(add 2 2)\"; exit 1; }\n",
+    "P": "nobuild",
+    "R": "fail",
+    "output": "FAIL: add 2 2 gave 4"
+  },
+  "expect": "should-pass"
+}

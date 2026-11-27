@@ -1,0 +1,17 @@
+{
+  "kind": "false-positive",
+  "intent": "Report fuel efficiency per trip",
+  "files": {
+    "trip.js": "function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }\n// Fuel efficiency assumes the destination is never the current location:\n// trips are only recorded once the vehicle has moved (see recorder.js).\nfunction efficiency(trip) {\n  return trip.fuel / distance(trip.from, trip.to);\n}\nmodule.exports = { distance, efficiency };\n"
+  },
+  "test": {
+    "id": "fp-stated-assumption",
+    "risk": "efficiency divides by zero when the trip starts and ends in the same place",
+    "file": "test/trip.test.js",
+    "body": "const assert = require('assert');\nconst { efficiency } = require('../trip');\nconst e = efficiency({ fuel: 3, from: { x: 0, y: 0 }, to: { x: 0, y: 0 } });\nassert.ok(Number.isFinite(e), 'efficiency must be finite for a trip that goes nowhere');\n",
+    "P": "nobuild",
+    "R": "fail",
+    "output": "AssertionError: efficiency must be finite for a trip that goes nowhere"
+  },
+  "expect": "should-pass"
+}

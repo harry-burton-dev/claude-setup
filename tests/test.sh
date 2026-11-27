@@ -379,7 +379,32 @@ grep -q '"deny"' <<<"$(gd '{"agent_type":"jit:generator","tool_name":"Write","to
 grep -q '"deny"' <<<"$(gd '{"agent_type":"jit:assessor","tool_name":"Write","tool_input":{"file_path":"/r/.work/jit/abc/tests.json"}}')" || fail "the assessor could write more than verdicts.json"
 [ -z "$(gd '{"tool_name":"Write","tool_input":{"file_path":"/r/lib.sh"}}')" ] || fail "the JiT guard restricted the main session"
 ok "the JiT generator writes only under .work/jit/, the assessor only its verdicts"
+
+# vm-paths: a repository whose CLAUDE.md is something else keeps its JiT line in claude-setup's
+# projects/<repo>.md. A change under a vm-path is flagged, and a test marked vm with no Docker is
+# reported as not run, never as a catch.
+git init -q --bare "$work/vo.git" && git clone -q "$work/vo.git" "$work/vmr" 2>/dev/null
+mkdir -p "$work/vmr/cloud" "$work/vmstore/projects" "$work/vmhome/.claude" "$work/nodocker"
+printf '%s' "$work/vmstore" > "$work/vmhome/.claude/claude-setup-dir"
+printf '# vmr\nJiT: vm-paths cloud/\n' > "$work/vmstore/projects/vmr.md"
+printf '# its own instructions, no JiT line\n' > "$work/vmr/CLAUDE.md"
+printf 'echo one\n' > "$work/vmr/cloud/setup.sh"
+(cd "$work/vmr" && g add . && g commit -qm base && git push -q origin HEAD:main 2>/dev/null && git fetch -q && git checkout -qb feat)
+printf 'echo one\necho two\necho three\necho four\necho five\necho six\n' > "$work/vmr/cloud/setup.sh" && (cd "$work/vmr" && g commit -qam more)
+vj() { (cd "$work/vmr" && HOME="$work/vmhome" PATH="$work/nodocker:$PATH" node "$jit" "$@"); }
+[ "$(vj triage | field vm)" = true ] || fail "a change under a vm-path from projects/<repo>.md was not flagged"
+vw="$work/vmr/.work/jit/$(git -C "$work/vmr" rev-parse HEAD)" && mkdir -p "$vw/tests/t"
+printf '{"tests":[{"id":"root","risk":"r","file":"t/root.sh","cmd":"bash t/root.sh","vm":true}]}' > "$vw/tests.json"
+printf '[ "$(id -u)" = 0 ]\n' > "$vw/tests/t/root.sh"
+printf '#!/bin/sh\nexit 1\n' > "$work/nodocker/docker" && chmod +x "$work/nodocker/docker"
+[ "$(vj run | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{const r=JSON.parse(s).results[0];console.log(r.R+" "+r.decision)})')" = "novm discard" ] || fail "a vm test without Docker was not set aside"
+printf '{}' > "$vw/verdicts.json"
+[ "$(vj finish | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>console.log(JSON.parse(s).notRun.join(" ")))')" = root ] || fail "the report did not name the vm test it could not run"
+ok "JiT reads vm-paths from projects/<repo>.md, flags a change under them, and reports a vm test it can't run without Docker"
 }
+
+node "$repo/tests/evals/jit/run.js" --check >/dev/null || { node "$repo/tests/evals/jit/run.js" --check; fail "a JiT assessor eval case is malformed, or its test doesn't fail on its code"; }
+ok "every JiT assessor eval case is well formed, and its test really fails on its code"
 
 # Magister's eval grader, on fixtures (no model), and every case well formed.
 node --test "$repo/tests/evals/magister/grade.test.js" >/dev/null 2>&1 || fail "Magister's eval grader"
@@ -438,6 +463,15 @@ if [ "${1:-}" = "--vm" ]; then
     echo "vm: a node that is not 26 after the install is a warning"
   ' || fail "cloud/setup.sh in ubuntu:24.04"
   ok "cloud/setup.sh works in a fresh ubuntu:24.04 container"
+  # JiT's VM run: each vm test gets a fresh root container with its revision at /repo. Side effects
+  # of one run (here, a marker under /root) never reach the next.
+  printf '{"tests":[{"id":"vmroot","risk":"r","file":"t/vmroot.sh","cmd":"bash t/vmroot.sh","vm":true},{"id":"vmnew","risk":"n","file":"t/vmnew.sh","cmd":"bash t/vmnew.sh","vm":true}]}' > "$vw/tests.json"
+  # shellcheck disable=SC2016 # literal shell for the container
+  printf '[ "$(id -u)" = 0 ] && grep -q "24.04" /etc/os-release && [ -f /repo/cloud/setup.sh ] && [ ! -e /root/marker ] && touch /root/marker && command -v node git >/dev/null\n' > "$vw/tests/t/vmroot.sh"
+  printf 'grep -q "echo six" cloud/setup.sh\n' > "$vw/tests/t/vmnew.sh"
+  out="$(cd "$work/vmr" && HOME="$work/vmhome" node "$jit" run | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{for(const r of JSON.parse(s).results)console.log(r.id+"="+r.P+"/"+r.R+"/"+r.decision)})' | tr '\n' ' ')"
+  [ "$out" = "vmroot=pass/pass/discard vmnew=fail/pass/land " ] || fail "JiT's VM run gave $out"
+  ok "JiT runs vm tests as root in a fresh Ubuntu 24.04 container per run, at each revision"
 fi
 
 printf '%d checks passed\n' "$pass"

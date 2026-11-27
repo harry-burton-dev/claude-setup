@@ -49,7 +49,10 @@ Write `.work/jit/<sha>/tests.json`:
 {"intent": "<one paragraph>",
  "tests": [{"id": "short-id", "risk": "<the one-line risk>", "file": "<path in the repository>",
             "cmd": "<shell command, run from the repository root, that runs only this test>",
-            "subject": ["<files the test needs to exist>"], "exists": "<optional shell check that the code under test exists>"}]}
+            "subject": ["<files the test needs to exist>"], "exists": "<optional shell check that the code under test exists>",
+            "vm": false}]}
 ```
+
+Set `"vm": true` on a test that needs a cloud VM's conditions: running as root in a fresh Ubuntu 24.04 with git, node and curl, with the revision at `/repo`. For example, a test that runs a setup script, installs packages, or checks what ends up first on `PATH`. The runner gives each run of a VM test a fresh container. Use it only when you've been told the change touches the repository's `vm-paths`, since it needs Docker.
 
 Return the intent and the list of risks, and nothing else.
