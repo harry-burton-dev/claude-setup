@@ -86,6 +86,9 @@ while read -r plugin marketplace; do
   fi
 done < <(cat "$plugins_lock" 2>/dev/null || true)
 
+# 5. Where this repository is, so the outerpale-startup plugin can find projects/.
+printf '%s' "$here" > "$dest/claude-setup-dir"
+
 if [ "$failed" -ne 0 ]; then
   log "finished with errors"
   exit 1
