@@ -26,6 +26,13 @@ Write the minimum that solves the problem, with nothing speculative: no extra fe
 
 Turn each task into a check that can run, such as a test, a script or a command with expected output. Write the check first, and the task is done when it passes. Say which check you ran and what it printed. If something can't be checked, say so plainly.
 
+## Docs and scratch
+
+- Finished design docs go in the repository's `docs/design/`, committed in that design issue's PR.
+- Scratch, plans, EGM working files and review reports go in `.work/`, which is never committed (the startup hook keeps it out of git).
+
+EGM artifact directory: .work/egm
+
 ## Setup improvement advice
 
 Tell me when any of these happen:

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# SessionStart: give this repository its project CLAUDE.md, which lives in claude-setup's
-# projects/<repo>.md and never in the repository itself. Silent when there is nothing to do.
+# SessionStart: keep .work/ (scratch, EGM working files, reviews) out of git, and give this
+# repository its project CLAUDE.md, which lives in claude-setup's projects/<repo>.md and never
+# in the repository itself. Silent when there is nothing to say.
 # What it prints is added to Claude's context.
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+exclude="$(git -C "$root" rev-parse --git-path info/exclude)"
+case "$exclude" in /*) ;; *) exclude="$root/$exclude" ;; esac
+mkdir -p "$(dirname "$exclude")"
+keep_out() { grep -qx "$1" "$exclude" 2>/dev/null || echo "$1" >> "$exclude"; }
+keep_out '/.work/'
 [ -f "$root/CLAUDE.md" ] && exit 0
 name="$(basename "$root")"
 setup="$(cat "$HOME/.claude/claude-setup-dir" 2>/dev/null || true)"
@@ -14,10 +20,7 @@ src="$setup/projects/$name.md"
 
 if [ -n "$setup" ] && [ -f "$src" ]; then
   cp "$src" "$root/CLAUDE.md"
-  exclude="$(git -C "$root" rev-parse --git-path info/exclude)"
-  case "$exclude" in /*) ;; *) exclude="$root/$exclude" ;; esac
-  mkdir -p "$(dirname "$exclude")"
-  grep -qx '/CLAUDE.md' "$exclude" 2>/dev/null || echo '/CLAUDE.md' >> "$exclude"
+  keep_out '/CLAUDE.md'
   printf 'outerpale-startup: copied claude-setup projects/%s.md to ./CLAUDE.md (kept out of git). These are this project'"'"'s instructions:\n\n' "$name"
   cat "$src"
 else
