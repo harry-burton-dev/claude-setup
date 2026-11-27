@@ -59,7 +59,7 @@ A pushed change reaches an environment on its next VM build: within 7 days, or a
 ## Known gaps
 
 - Unconfirmed: whether a file the setup script writes into a checkout survives a cached VM start (the marker test).
-- Session traces go to Langfuse through Claude Code's own OpenTelemetry export (beta), configured in each cloud environment's variables, with the auth header among them. Each environment and each machine needs them set; `outerpale-devops` no longer sends anything.
+- Session traces go to Langfuse through Langfuse's `langfuse-observability` plugin (`plugins.lock`). Its Stop and SessionEnd hook reads the transcript and sends each turn with its prompt, model output and tool calls as Input and Output. Claude Code's own OpenTelemetry export was dropped on 27 Nov 2026: its spans carry content only in attributes Langfuse doesn't map (`user_prompt`, a `tool.output` event), and no model output without debug-only detailed tracing. In cloud the keys are a network secret on the Funnel host, and the environment holds only `LANGFUSE_BASE_URL`, placeholder keys and `CC_LANGFUSE_CAPTURE_IMAGES=false` (the Funnel exposes only `/api/public/otel`, not media upload). On a local machine set the real `LANGFUSE_*` variables, or use `/plugin configure`. The hook's log is `~/.claude/state/langfuse_hook.log`; `CC_LANGFUSE_DEBUG=true` adds detail.
 
 ## Project management in Linear
 

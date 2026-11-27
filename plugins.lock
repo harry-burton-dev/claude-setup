@@ -22,3 +22,8 @@ outerpale-mem@claude-setup harry-burton-dev/claude-setup
 
 # outerpale-mem-global: global memory every session shares (OneDrive Claude/memory/_global/). Kept in this repository; leave it out to keep a machine's sessions without it.
 outerpale-mem-global@claude-setup harry-burton-dev/claude-setup
+
+# Langfuse observability: a Stop/SessionEnd hook that sends each turn's prompt, model output and tool calls to Harry's self-hosted Langfuse. Published by Langfuse.
+# Config comes from environment variables (they win over the plugin's setup wizard): LANGFUSE_BASE_URL, placeholder LANGFUSE_PUBLIC_KEY/SECRET_KEY
+# in cloud (the proxy injects the real Basic auth as a network secret) and CC_LANGFUSE_CAPTURE_IMAGES=false (the Funnel exposes only /api/public/otel).
+langfuse-observability@langfuse-observability langfuse/Claude-Observability-Plugin
