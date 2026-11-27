@@ -5,6 +5,8 @@ description: Launch Magister - Harry's background second perspective (research, 
 
 Magister makes Harry's work better by feeding him information: it never interrupts and never asks. Its findings are a log of his own, kept in OneDrive under `Claude/magister/`, not part of any project.
 
+Magister advises Harry, not this session. The finding in OneDrive is the whole output, and it is for him. This session gets only its link: don't read a finding (in OneDrive or `~/.magister/`), don't summarise it, and don't change the work because Magister ran. A hook refuses those reads. If Harry acts on a finding, he'll say so.
+
 ## When
 
 At a design, UI or decision moment, if a second perspective would add something: research on how others do it, a check of intent and assumptions, confirmation that a choice is sound, or an alternative. Not for routine edits, and not twice on the same question. There is no cap: a run of real decisions can warrant several runs.
@@ -18,13 +20,15 @@ Start the `magister:magister` agent with the Agent tool, **in the background**, 
 - the files to read, by absolute path
 - the repository name, the Linear scope if any, this session's link, and the current date and time (it has no clock of its own)
 
-## Pass on its note
+## Pass on its link
 
-When it reports, add its note at the end of your next reply, prefixed `Magister:`: its most useful point and the OneDrive link, in one or two lines. If it said "Nothing material to add", say nothing. If it recommends deep research, end the note with "Say 'research it' to start." Never stop work, or ask a question, because of it.
+When it reports `Finding filed: <link>`, add `Magister: <link>` at the end of your next reply, and nothing more. If it said "Nothing material to add", say nothing. Never stop work, ask a question, or change course because of it.
 
 ## Upload
 
-For a finding in `~/.magister/outbox/` and its built variants in `.work/alt/`, with the Microsoft 365 connector:
+Magister uploads its own findings. When session start reports findings left in `~/.magister/outbox/`, launch `magister:magister` in the background with the brief "Upload the findings left in `~/.magister/outbox/`; nothing else", and pass on the links it returns as above. Don't upload them from this session, since that means reading them.
+
+How Magister uploads a finding in the outbox and its built variants beside it, with the Microsoft 365 connector:
 
 1. Find the drive: `read_resource` with `drive:///users/me`; use the drive named `OneDrive`.
 2. Find the folder: `read_resource` with `file:///<driveId>/Claude` lists its children, with `magister`'s item id in its URI. If `Claude` or `magister` is missing, create it with `sharepoint_create_folder` (one level per call).

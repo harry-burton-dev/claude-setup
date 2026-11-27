@@ -2,7 +2,7 @@
 // Magister's hooks. Silent unless there is something to say; any error prints nothing.
 //   node magister.js session-start  (SessionStart) findings an earlier session didn't get into OneDrive
 //   node magister.js prompt         (UserPromptSubmit) a design or decision moment: suggest Magister, in the background
-//   node magister.js guard          (PreToolUse) Magister writes only to .work/ and its outbox, and runs no shell
+//   node magister.js guard          (PreToolUse) Magister writes only to its outbox and runs no shell; nothing else reads its findings
 //   node magister.js uploaded       (PostToolUse on the OneDrive upload) a finding that arrived leaves the outbox
 // MAGISTER_HOME (default ~/.magister) holds the outbox; the eval runner points it elsewhere.
 'use strict';
@@ -30,22 +30,31 @@ const modes = {
   'session-start'() {
     let n = 0;
     try { n = fs.readdirSync(outbox()).filter(f => f.endsWith('.md')).length; } catch {}
-    if (n) context('SessionStart', `${n} Magister finding(s) in ${outbox()} didn't reach OneDrive. Upload them as the magister skill's "Upload" section says, in the background, without mentioning it unless it fails.`);
+    if (n) context('SessionStart', `${n} Magister finding(s) in ${outbox()} didn't reach OneDrive. Launch the ${AGENT} agent in the background to upload them, as the magister skill's "Upload" section says; don't read them yourself.`);
   },
   prompt(input) {
     const p = String(input.prompt || '');
     if (MACHINE.test(p) || !MOMENT.test(p)) return;
-    context('UserPromptSubmit', `this is design or decision work. If a second perspective would make it better (research, analysis of intent and assumptions, confirmation that a choice is sound, or an alternative), launch the ${AGENT} agent in the background as the magister skill says, carry on without waiting, and pass on its note when it reports. If nothing would add much, don't launch it and don't mention it.`);
+    context('UserPromptSubmit', `this is design or decision work. If a second perspective would make it better (research, analysis of intent and assumptions, confirmation that a choice is sound, or an alternative), launch the ${AGENT} agent in the background as the magister skill says, carry on without waiting, and when it reports pass on only its link. If nothing would add much, don't launch it and don't mention it.`);
   },
   guard(input) {
-    if (input.agent_type !== AGENT) return;
     const tool = input.tool_name;
-    if (tool === 'Bash') return deny('Magister runs no shell commands. Read, search the web, and write findings to its outbox or .work/.');
-    if (!/^(?:Write|Edit|MultiEdit|NotebookEdit)$/.test(tool)) return;
     const ti = input.tool_input || {};
     const cwd = input.cwd || process.cwd();
+    if (input.agent_type !== AGENT) {
+      // The finding is for Harry: the session gets only its link, so it can't act on what it says.
+      const why = 'a Magister finding is for Harry to read in OneDrive, not for this session. Pass on its link only.';
+      if (/__(?:read_resource|download_file_content|read_file_content)$/.test(tool) && /Claude\/magister\b/i.test(JSON.stringify(ti))) return deny(why);
+      if (tool === 'Bash' && /\.magister\b/.test(String(ti.command || ''))) return deny(why);
+      const p = ti.file_path || ti.path;
+      const f = p && path.resolve(cwd, p);
+      if (/^(?:Read|Grep|Glob)$/.test(tool) && f && (f === home() || inside(f, home()))) return deny(why);
+      return;
+    }
+    if (tool === 'Bash') return deny('Magister runs no shell commands. Read, search the web, and write findings and variants to its outbox.');
+    if (!/^(?:Write|Edit|MultiEdit|NotebookEdit)$/.test(tool)) return;
     const file = path.resolve(cwd, ti.file_path || ti.notebook_path || '');
-    if (![path.join(cwd, '.work'), home()].some(d => inside(file, d))) return deny(`Magister writes only into .work/ and ${home()}, never into the project itself: ${file}`);
+    if (!inside(file, home())) return deny(`Magister writes only into ${home()}, never into the project: ${file}`);
   },
   uploaded(input) {
     const name = path.basename(String((input.tool_input || {}).filename || ''));

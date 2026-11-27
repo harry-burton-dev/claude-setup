@@ -25,7 +25,6 @@ function runCase(id) {
   const repo = path.join(tmp, 'repo');
   const mhome = path.join(tmp, 'magister');
   for (const [f, text] of Object.entries(c.files)) { fs.mkdirSync(path.dirname(path.join(repo, f)), { recursive: true }); fs.writeFileSync(path.join(repo, f), text); }
-  fs.mkdirSync(path.join(repo, '.work', 'alt'), { recursive: true });
   fs.mkdirSync(path.join(mhome, 'outbox'), { recursive: true });
   execFileSync('git', ['init', '-q', repo]);
   const brief = [
@@ -35,14 +34,14 @@ function runCase(id) {
     `- Decision at hand: ${c.brief.decision}`,
     `- Files: ${Object.keys(c.files).map(f => path.join(repo, f)).join(', ')}`,
     `- Repository: eval. Scope: none. Session: none. Current time: ${new Date().toISOString()}`,
-    `- Outbox: ${path.join(mhome, 'outbox')}. Variants go in ${path.join(repo, '.work', 'alt')}. Don't upload.`,
+    `- Outbox: ${path.join(mhome, 'outbox')}. Don't upload.`,
     'Then print exactly what it returned, and nothing else.',
   ].join('\n');
   const t0 = Date.now();
   let out = {};
   try {
     const raw = execFileSync('claude', ['-p', '--output-format', 'json', '--plugin-dir', plugin, '--settings', settings,
-      '--allowedTools', `WebSearch,WebFetch,Read,Glob,Grep,Edit(/${mhome}/**),Edit(/${repo}/.work/**)`, '--', brief],
+      '--allowedTools', `WebSearch,WebFetch,Read,Glob,Grep,Edit(/${mhome}/**)`, '--', brief],
       { cwd: repo, env: { ...process.env, MAGISTER_HOME: mhome }, timeout: 15 * 60 * 1000, maxBuffer: 64 * 1024 * 1024 }).toString();
     out = JSON.parse(raw);
   } catch (err) { out = { result: `run failed: ${err.message.split('\n')[0]}` }; }
@@ -50,7 +49,7 @@ function runCase(id) {
   const run = {
     finding: md ? fs.readFileSync(path.join(mhome, 'outbox', md), 'utf8') : null,
     returned: out.result || '',
-    variants: fs.readdirSync(path.join(repo, '.work', 'alt')),
+    variants: fs.readdirSync(path.join(mhome, 'outbox')).filter(f => !f.endsWith('.md')),
   };
   const g = grade(c, run);
   return { id, kind: c.kind, pass: g.pass, checks: g.checks, cost_usd: out.total_cost_usd ?? null, seconds: Math.round((Date.now() - t0) / 1000), returned: run.returned, finding: run.finding, variants: run.variants, workdir: tmp };

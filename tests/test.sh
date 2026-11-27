@@ -171,16 +171,34 @@ grep -q 'background' <<<"$out" || fail "Magister was not to run in the backgroun
 [ -z "$(sug prompt '{"session_id":"c1","prompt":"I think we should design the settings page"}')" ] || fail "outerpale-startup still speaks for Magister"
 ok "a design or decision moment suggests Magister, in the background; ordinary prompts and outerpale-startup don't"
 
-# Magister writes only to .work/ and its outbox, and runs no shell commands.
+# Magister writes only to its outbox, and runs no shell commands.
 mw() { printf '{"agent_type":"magister:magister","cwd":"%s","tool_name":"%s","tool_input":{"file_path":"%s","command":"ls"}}' "$work/demo" "$1" "$2"; }
 grep -q '"deny"' <<<"$(mg guard "$(mw Write "$work/demo/src/app.ts")")" || fail "Magister could write into the code"
 grep -q '"deny"' <<<"$(mg guard "$(mw Bash '')")" || fail "Magister could run a shell command"
-[ -z "$(mg guard "$(mw Write "$work/demo/.work/alt/settings-v2.html")")" ] || fail "Magister could not write into .work/"
+grep -q '"deny"' <<<"$(mg guard "$(mw Write "$work/demo/.work/alt/settings-v2.html")")" || fail "Magister could write variants into the project"
 [ -z "$(mg guard "$(mw Write "$work/maghome/.magister/outbox/2026-11-27-x.md")")" ] || fail "Magister could not write its outbox"
+[ -z "$(mg guard "$(mw Write "$work/maghome/.magister/outbox/2026-11-27-x--two-column.html")")" ] || fail "Magister could not write a variant to its outbox"
+[ -z "$(mg guard "$(mw Read "$work/maghome/.magister/outbox/2026-11-27-x.md")")" ] || fail "Magister could not read its own outbox"
 [ -z "$(mg guard "{\"cwd\":\"$work/demo\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$work/demo/src/app.ts\"}}")" ] || fail "the main session was restricted"
 out="$(cd "$work/demo" && HOME="$work/maghome" MAGISTER_HOME="$work/evalhome" node "$mag" guard <<<"$(mw Write "$work/evalhome/outbox/x.md")")"
 [ -z "$out" ] || fail "MAGISTER_HOME did not move the outbox"
-ok "Magister writes only to .work/ and its outbox (MAGISTER_HOME moves it), and runs no shell; the main session is unaffected"
+ok "Magister writes only to its outbox (MAGISTER_HOME moves it), and runs no shell; the main session can still write"
+
+# A finding is for Harry: the main session, and any other agent, can't read it, so it gets only the link.
+ms() { printf '{"cwd":"%s","tool_name":"%s","tool_input":%s}' "$work/demo" "$1" "$2"; }
+for call in \
+  "$(ms Read "{\"file_path\":\"$work/maghome/.magister/outbox/2026-11-27-x.md\"}")" \
+  "$(ms Grep "{\"pattern\":\"x\",\"path\":\"$work/maghome/.magister\"}")" \
+  "$(ms Glob "{\"pattern\":\"*.md\",\"path\":\"$work/maghome/.magister/outbox\"}")" \
+  "$(ms Bash '{"command":"cat ~/.magister/outbox/*.md"}')" \
+  "$(ms mcp__Microsoft_365__read_resource '{"uri":"file:///b!abc/Claude/magister/2026-11-27-x.md"}')" \
+  "$(printf '{"agent_type":"Explore","cwd":"%s","tool_name":"Read","tool_input":{"file_path":"%s"}}' "$work/demo" "$work/maghome/.magister/outbox/x.md")"; do
+  grep -q '"deny"' <<<"$(mg guard "$call")" || fail "a finding could be read outside Magister: $call"
+done
+[ -z "$(mg guard "$(ms Read "{\"file_path\":\"$work/demo/src/app.ts\"}")")" ] || fail "the main session could not read the project"
+[ -z "$(mg guard "$(ms mcp__Microsoft_365__read_resource '{"uri":"file:///b!abc/Claude/memory/claude-setup/MEMORY.md"}')")" ] || fail "the main session could not read its memory"
+[ -z "$(mg guard "$(ms Bash '{"command":"node plugins/magister/hooks/magister.js"}')")" ] || fail "a command naming the plugin was refused"
+ok "only Magister reads its findings; the session reads the project, its memory and the plugin as before"
 
 # Unsent findings from an earlier session are flagged at session start, wherever it is.
 mkdir -p "$work/maghome/.magister/outbox" && touch "$work/maghome/.magister/outbox/2026-11-27-a.md"
