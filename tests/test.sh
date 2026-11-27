@@ -74,9 +74,13 @@ if [ "${1:-}" = "--vm" ]; then
     printf "#!/usr/bin/env bash\necho \"\$*\" >> /tmp/claude.log\n" > /tmp/bin/claude
     chmod +x /tmp/bin/claude
     sed -i "s|^ENV_PLUGINS=\"$|ENV_PLUGINS=\"envplug@m owner/m|" /opt/claude-setup/cloud/setup.sh
-    PATH="/tmp/bin:$PATH" SETUP_SRC=/opt/claude-setup bash /opt/claude-setup/cloud/setup.sh
+    # Cloud VMs have an older node ahead of /usr/local/bin on PATH (/opt/node22/bin). Stand one in.
+    mkdir -p /opt/oldnode/bin && cp /usr/bin/node /opt/oldnode/bin/node
+    PATH="/tmp/bin:/opt/oldnode/bin:$PATH" SETUP_SRC=/opt/claude-setup bash /opt/claude-setup/cloud/setup.sh
     grep -qx "plugin install envplug@m --scope user" /tmp/claude.log
     echo "vm: a plugin listed in the setup script was installed"
+    PATH="/opt/oldnode/bin:$PATH" node --version | grep -q "^v26\."
+    echo "vm: node 26 replaced the older node that comes first on PATH"
     cmp -s /opt/claude-setup/CLAUDE.md /root/.claude/CLAUDE.md
     grep -q "^claude-setup" /root/.claude/claude-setup.status
     grep -q "^warnings: none" /root/.claude/claude-setup.status

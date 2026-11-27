@@ -30,13 +30,17 @@ else
 fi
 
 # 2. Node $NODE_MAJOR as the default node, with pnpm through corepack.
-if node --version 2>/dev/null | grep -q "^v$NODE_MAJOR\."; then
-  log "node $(node --version) already present"
-elif npm install -g -s n >/dev/null 2>&1 && n -q "$NODE_MAJOR" >/dev/null 2>&1; then
+is_node_major() { node --version 2>/dev/null | grep -q "^v$NODE_MAJOR\."; }
+if ! is_node_major && npm install -g -s n >/dev/null 2>&1 && n -q "$NODE_MAJOR" >/dev/null 2>&1; then
   hash -r
-  log "node $(node --version) installed"
+  # n installs into /usr/local, but cloud VMs put /opt/node22/bin ahead of it on PATH.
+  # Install over whichever node comes first, so that one is $NODE_MAJOR too.
+  is_node_major || { N_PREFIX="$(dirname "$(dirname "$(command -v node)")")" n -q "$NODE_MAJOR" >/dev/null 2>&1; hash -r; }
+fi
+if is_node_major; then
+  log "node $(node --version) is the default node"
 else
-  warn "node $NODE_MAJOR not installed (is nodejs.org allowed?); keeping $(node --version 2>/dev/null || echo none)"
+  warn "node $NODE_MAJOR is not the default node (is nodejs.org allowed?); node is $(node --version 2>/dev/null || echo none)"
 fi
 # Node 25 and later no longer bundle corepack, so it is installed from npm first.
 if { command -v corepack >/dev/null 2>&1 || npm install -g -s corepack >/dev/null 2>&1; } && corepack enable >/dev/null 2>&1; then
