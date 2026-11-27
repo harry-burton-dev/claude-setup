@@ -27,6 +27,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 | `outerpale-mem` | this repository's marketplace | Memory across sessions, in OneDrive (`docs/memory.md`) |
 | `outerpale-mem-global` | this repository's marketplace | Global memory every session shares (`docs/memory.md`) |
 | `magister` | this repository's marketplace | Magister, the background second perspective (below) |
+| `jit` | this repository's marketplace | JiT catching tests before every PR, in every repository (below) |
 
 ## A session, start to finish
 
@@ -46,6 +47,15 @@ A second perspective that makes the work better, without being asked and without
 - **Evals:** `tests/evals/magister/` (see `docs/magister.md`).
 
 The intent reviewer, `outerpale-startup:intent-reviewer`, read-only, checks a branch's diff against its issue's goal and design intent before the PR opens (`outerpale-devops:build-issue`).
+
+JiT testing, `jit:run`, runs once before every PR in every repository, on top of the checks written first (design: `docs/design/jit-testing.md`).
+
+- **What it does:** an independent generator writes tests from the change's intent. They run on the change and on its parent in throwaway worktrees. Likely bugs are reported, after an assessor weeds out false positives, and tests that pin the change land in the repository's own tests.
+- **When it skips:** triage skips docs-only and tiny changes by itself. Claude can also skip a change that is low risk, or already well tested and reviewed, by recording why.
+- **The gate:** the `jit` plugin's hook refuses PR creation until a report or a recorded skip exists for the branch. It never blocks on what JiT found.
+- **Settings:** a repository's optional `JiT:` line in its project `CLAUDE.md` names fixed invariant checks and extra paths to skip.
+- **claude-setup's own fixed check:** `tests/hook-contract.sh`, which runs every SessionStart hook in the three session shapes.
+- **Backtests:** `tests/jit-backtest.sh` replays the bugs that got through, from `tests/jit/benchmarks/<repo>.tsv`.
 
 ## Cloud environments
 
