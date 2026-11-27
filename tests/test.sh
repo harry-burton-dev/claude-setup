@@ -58,6 +58,16 @@ grep -qx 'plugin marketplace add owner/market-repo' "$work/claude.log" || fail "
 grep -qx 'plugin install demo@market --scope user' "$work/claude.log" || fail "plugin not installed"
 ok "a listed plugin is installed through the claude CLI at user scope"
 
+# Third-party plugins are pinned: plugins.lock installs only from Harry's own repositories, and every
+# plugin claude-setup's marketplace takes from elsewhere names an exact commit.
+grep -vE '^\s*(#|$)' "$repo/plugins.lock" | awk '$2 !~ /^harry-burton-dev\//' | grep -q . && fail "plugins.lock installs from a third-party marketplace, which can't be pinned"
+node -e '
+  const m = require(process.argv[1]);
+  const loose = m.plugins.filter(p => typeof p.source !== "string" && !/^[0-9a-f]{40}$/.test(p.source.sha || ""));
+  if (loose.length) { console.error(loose.map(p => p.name).join(", ")); process.exit(1); }
+' "$repo/.claude-plugin/marketplace.json" || fail "a third-party plugin in marketplace.json has no exact sha"
+ok "third-party plugins are pinned to an exact commit"
+
 # install.sh records where this repository is, so the outerpale-startup hook can find projects/.
 [ "$(cat "$work/home/.claude/claude-setup-dir")" = "$repo" ] || fail "claude-setup-dir not recorded"
 ok "install.sh records where claude-setup is"
@@ -415,12 +425,18 @@ for (const f of fs.readdirSync(p)) { const c=JSON.parse(fs.readFileSync(p+f));
   if (["flaw","literal"].includes(c.kind)&&!(c.expect.mention_any||[]).length) throw new Error(f); }' "$repo" || fail "a Magister eval case is malformed"
 ok "Magister's eval grader passes its tests, and every eval case is well formed"
 
+# Every plugin in this repository's marketplace ships through plugins.lock, or the lock says it doesn't.
+for name in $(node -e 'for (const p of require(process.argv[1]).plugins) console.log(p.name)' "$repo/.claude-plugin/marketplace.json"); do
+  grep -qx "$name@claude-setup harry-burton-dev/claude-setup" "$repo/plugins.lock" || grep -qx "# not installed: $name.*" "$repo/plugins.lock" ||
+    fail "marketplace plugin $name is neither in plugins.lock nor marked '# not installed: $name' there"
+done
+ok "every marketplace plugin is in plugins.lock or marked not installed"
+
 # The magister-avatar mod ships through plugins.lock, so a broken one would reach every machine.
-grep -qx 'magister-avatar@claude-setup harry-burton-dev/claude-setup' "$repo/plugins.lock" || fail "magister-avatar is not in plugins.lock"
 if command -v claude >/dev/null 2>&1; then
   claude plugin validate "$repo/plugins/magister-avatar" 2>&1 | grep -q 'Validation passed' || fail "magister-avatar does not validate"
   claude plugin test "$repo/plugins/magister-avatar" >/dev/null 2>&1 || fail "magister-avatar's tests"
-  ok "magister-avatar is in plugins.lock, validates, and passes its tests"
+  ok "magister-avatar validates and passes its tests"
 else
   printf 'skip: claude not installed, magister-avatar not tested\n'
 fi
@@ -461,6 +477,12 @@ if [ "${1:-}" = "--vm" ]; then
     PATH="/tmp/oldnode:/tmp/bin:$PATH" bash /opt/claude-setup/cloud/setup.sh > /tmp/guard.log 2>&1 || true
     grep -q "^warning: node 26 is not the default node.*node is v22.0.0" /root/.claude/claude-setup.status || { cat /tmp/guard.log; exit 1; }
     echo "vm: a node that is not 26 after the install is a warning"
+    # A plugin that fails to install is a warning in the status file, not a failed setup:
+    # a failing setup script stops every session in the environment from starting.
+    printf "#!/usr/bin/env bash\n[ \"\$2\" = install ] && exit 1; exit 0\n" > /tmp/bin/claude
+    PATH="/tmp/bin:/opt/oldnode/bin:$PATH" bash /opt/claude-setup/cloud/setup.sh > /tmp/plugfail.log 2>&1 || { cat /tmp/plugfail.log; echo "setup.sh failed because a plugin failed"; exit 1; }
+    grep -q "^warning: .*plugin" /root/.claude/claude-setup.status || { cat /root/.claude/claude-setup.status; exit 1; }
+    echo "vm: a plugin that fails to install is a warning, and setup still finishes"
   ' || fail "cloud/setup.sh in ubuntu:24.04"
   ok "cloud/setup.sh works in a fresh ubuntu:24.04 container"
   # JiT's VM run: each vm test gets a fresh root container with its revision at /repo. Side effects
