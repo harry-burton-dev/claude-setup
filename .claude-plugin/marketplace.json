@@ -15,6 +15,11 @@
       "description": "Magister: a background second perspective at design, UI and decision moments; findings go to OneDrive."
     },
     {
+      "name": "magister-avatar",
+      "source": "./plugins/magister-avatar",
+      "description": "Desktop side pane: Magister's avatar while it runs, and its report cut to the finding's link."
+    },
+    {
       "name": "outerpale-mem",
       "source": "./plugins/outerpale-mem",
       "description": "Memory that survives cloud sessions: OneDrive Claude/memory/<repo>/, loaded at session start, consolidated nightly."
@@ -28,6 +33,11 @@
       "name": "send-to-todoist",
       "source": "./plugins/send-to-todoist",
       "description": "Right-click selected text, or the action items in a reply, to send them to Todoist labelled Claude; plans drafted in a side pane before they go."
+    },
+    {
+      "name": "jit",
+      "source": "./plugins/jit",
+      "description": "Just-in-time catching tests before every PR, in every repository: generated tests run on the change and its parent, likely bugs reported, tests that pin the change landed."
     },
     {
       "name": "gsd-core",

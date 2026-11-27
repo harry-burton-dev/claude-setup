@@ -181,16 +181,34 @@ grep -q 'background' <<<"$out" || fail "Magister was not to run in the backgroun
 [ -z "$(sug prompt '{"session_id":"c1","prompt":"I think we should design the settings page"}')" ] || fail "outerpale-startup still speaks for Magister"
 ok "a design or decision moment suggests Magister, in the background; ordinary prompts and outerpale-startup don't"
 
-# Magister writes only to .work/ and its outbox, and runs no shell commands.
+# Magister writes only to its outbox, and runs no shell commands.
 mw() { printf '{"agent_type":"magister:magister","cwd":"%s","tool_name":"%s","tool_input":{"file_path":"%s","command":"ls"}}' "$work/demo" "$1" "$2"; }
 grep -q '"deny"' <<<"$(mg guard "$(mw Write "$work/demo/src/app.ts")")" || fail "Magister could write into the code"
 grep -q '"deny"' <<<"$(mg guard "$(mw Bash '')")" || fail "Magister could run a shell command"
-[ -z "$(mg guard "$(mw Write "$work/demo/.work/alt/settings-v2.html")")" ] || fail "Magister could not write into .work/"
+grep -q '"deny"' <<<"$(mg guard "$(mw Write "$work/demo/.work/alt/settings-v2.html")")" || fail "Magister could write variants into the project"
 [ -z "$(mg guard "$(mw Write "$work/maghome/.magister/outbox/2026-11-27-x.md")")" ] || fail "Magister could not write its outbox"
+[ -z "$(mg guard "$(mw Write "$work/maghome/.magister/outbox/2026-11-27-x--two-column.html")")" ] || fail "Magister could not write a variant to its outbox"
+[ -z "$(mg guard "$(mw Read "$work/maghome/.magister/outbox/2026-11-27-x.md")")" ] || fail "Magister could not read its own outbox"
 [ -z "$(mg guard "{\"cwd\":\"$work/demo\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$work/demo/src/app.ts\"}}")" ] || fail "the main session was restricted"
 out="$(cd "$work/demo" && HOME="$work/maghome" MAGISTER_HOME="$work/evalhome" node "$mag" guard <<<"$(mw Write "$work/evalhome/outbox/x.md")")"
 [ -z "$out" ] || fail "MAGISTER_HOME did not move the outbox"
-ok "Magister writes only to .work/ and its outbox (MAGISTER_HOME moves it), and runs no shell; the main session is unaffected"
+ok "Magister writes only to its outbox (MAGISTER_HOME moves it), and runs no shell; the main session can still write"
+
+# A finding is for Harry: the main session, and any other agent, can't read it, so it gets only the link.
+ms() { printf '{"cwd":"%s","tool_name":"%s","tool_input":%s}' "$work/demo" "$1" "$2"; }
+for call in \
+  "$(ms Read "{\"file_path\":\"$work/maghome/.magister/outbox/2026-11-27-x.md\"}")" \
+  "$(ms Grep "{\"pattern\":\"x\",\"path\":\"$work/maghome/.magister\"}")" \
+  "$(ms Glob "{\"pattern\":\"*.md\",\"path\":\"$work/maghome/.magister/outbox\"}")" \
+  "$(ms Bash '{"command":"cat ~/.magister/outbox/*.md"}')" \
+  "$(ms mcp__Microsoft_365__read_resource '{"uri":"file:///b!abc/Claude/magister/2026-11-27-x.md"}')" \
+  "$(printf '{"agent_type":"Explore","cwd":"%s","tool_name":"Read","tool_input":{"file_path":"%s"}}' "$work/demo" "$work/maghome/.magister/outbox/x.md")"; do
+  grep -q '"deny"' <<<"$(mg guard "$call")" || fail "a finding could be read outside Magister: $call"
+done
+[ -z "$(mg guard "$(ms Read "{\"file_path\":\"$work/demo/src/app.ts\"}")")" ] || fail "the main session could not read the project"
+[ -z "$(mg guard "$(ms mcp__Microsoft_365__read_resource '{"uri":"file:///b!abc/Claude/memory/claude-setup/MEMORY.md"}')")" ] || fail "the main session could not read its memory"
+[ -z "$(mg guard "$(ms Bash '{"command":"node plugins/magister/hooks/magister.js"}')")" ] || fail "a command naming the plugin was refused"
+ok "only Magister reads its findings; the session reads the project, its memory and the plugin as before"
 
 # Unsent findings from an earlier session are flagged at session start, wherever it is.
 mkdir -p "$work/maghome/.magister/outbox" && touch "$work/maghome/.magister/outbox/2026-11-27-a.md"
@@ -277,6 +295,102 @@ ok "global proposals can't be left un-uploaded, the stop check never loops, and 
 grep -q '_global' "$repo/plugins/outerpale-mem/skills/dream/SKILL.md" || fail "the repository dream doesn't leave _global to its own dream"
 ok "the repository dream leaves _global to outerpale-mem-global"
 
+# JiT (plugins/jit): layer 1 is the hook contract, generated from every plugin's hooks.json; the backtest
+# replays the bugs it was built to catch. Then the runner, end to end, on a small repository.
+"$repo/tests/hook-contract.sh" >/dev/null || { "$repo/tests/hook-contract.sh"; fail "a SessionStart hook breaks the three-shape contract"; }
+ok "every SessionStart hook keeps the contract: exits 0, valid JSON, names each repository from a parent folder"
+"$repo/tests/jit-backtest.sh" >/dev/null || fail "the layer 1 backtest no longer catches B1 and B2 without false alarms"
+ok "the layer 1 backtest catches B1 and B2 at their buggy revisions, with no false alarms"
+for t in "$repo"/tests/jit/landed/*.sh; do
+  [ -e "$t" ] || continue
+  (cd "$repo" && HOME="$(mktemp -d)" bash "$t") >/dev/null 2>&1 || fail "landed JiT test $(basename "$t")"
+  ok "landed JiT test $(basename "$t")"
+done
+
+# The test bodies below are literal shell, so $ in single quotes is meant.
+# shellcheck disable=SC2016
+{
+jit="$repo/plugins/jit/scripts/jit.js"
+g() { git -c user.name=t -c user.email=t@t "$@"; }
+git init -q --bare "$work/jo.git" && git clone -q "$work/jo.git" "$work/jr" 2>/dev/null
+printf 'add(){ echo $(( $1 + $2 )); }\n' > "$work/jr/lib.sh"
+(cd "$work/jr" && g add . && g commit -qm base && git push -q origin HEAD:main 2>/dev/null && git fetch -q && git checkout -qb feat)
+jj() { (cd "$work/jr" && node "$jit" "$@"); }
+field() { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>console.log(JSON.parse(s)[process.argv[1]]))' "$1"; }
+printf '# notes\n' > "$work/jr/README.md" && (cd "$work/jr" && g add . && g commit -qm docs)
+[ "$(jj triage | field decision)" = skip ] || fail "a docs-only change was not skipped"
+printf 'add(){ echo $(( $1 + $2 )); }\nsub(){ echo $(( $1 - $2 )); }\n' > "$work/jr/lib.sh" && (cd "$work/jr" && g commit -qam sub)
+[ "$(jj triage | field reason)" = "tiny change (1 line(s))" ] || fail "a one-line change was not skipped as tiny"
+ok "JiT triage skips docs-only and tiny changes, and writes the report"
+cat > "$work/jr/lib.sh" <<'EOF'
+add(){ echo $(( $1 + $2 )); }
+sub(){ echo $(( $1 - $2 )); }
+# mul multiplies two integers
+mul(){ echo $(( $1 + $2 )); }
+neg(){ echo $(( 0 - $1 )); }
+sq(){ echo $(( $1 * $1 )); }
+half(){ echo $(( $1 / 2 )); }
+EOF
+(cd "$work/jr" && g commit -qam "mul, neg, sq, half")
+[ "$(jj triage | field decision)" = run ] || fail "a real change was skipped"
+sha="$(git -C "$work/jr" rev-parse HEAD)" jw="$work/jr/.work/jit/$(git -C "$work/jr" rev-parse HEAD)"
+mkdir -p "$jw/tests/tests/jit"
+cat > "$jw/tests.json" <<'EOF'
+{"tests":[
+ {"id":"mul","risk":"mul adds","file":"tests/jit/mul.sh","cmd":"bash tests/jit/mul.sh","exists":"grep -q '^mul()' lib.sh"},
+ {"id":"sq","risk":"sq wrong","file":"tests/jit/sq.sh","cmd":"bash tests/jit/sq.sh"},
+ {"id":"add","risk":"add regressed","file":"tests/jit/add.sh","cmd":"bash tests/jit/add.sh"},
+ {"id":"net","risk":"x","file":"tests/jit/net.sh","cmd":"bash tests/jit/net.sh"},
+ {"id":"both","risk":"y","file":"tests/jit/both.sh","cmd":"bash tests/jit/both.sh"},
+ {"id":"flaky","risk":"z","file":"tests/jit/flaky.sh","cmd":"bash tests/jit/flaky.sh"},
+ {"id":"neg","risk":"neg wrong","file":"tests/jit/neg.sh","cmd":"bash tests/jit/neg.sh"}
+]}
+EOF
+printf '. ./lib.sh; [ "$(mul 2 3)" = 6 ]\n' > "$jw/tests/tests/jit/mul.sh"
+printf '. ./lib.sh; type sq >/dev/null 2>&1 || exit 77; [ "$(sq 3)" = 9 ]\n' > "$jw/tests/tests/jit/sq.sh"
+printf '. ./lib.sh; [ "$(add 2 3)" = 5 ]\n' > "$jw/tests/tests/jit/add.sh"
+printf 'type mul >/dev/null 2>&1; . ./lib.sh; type mul >/dev/null 2>&1 || exit 0; echo "curl: (6) Could not resolve host: x"; exit 6\n' > "$jw/tests/tests/jit/net.sh"
+printf 'exit 1\n' > "$jw/tests/tests/jit/both.sh"
+printf '. ./lib.sh; type neg >/dev/null 2>&1 || exit 77; [ "$(neg 2)" = 2 ]\n' > "$jw/tests/tests/jit/neg.sh"
+printf '. ./lib.sh; type mul >/dev/null 2>&1 || exit 0; f=/tmp/jit-flaky-%s; if [ -e "$f" ]; then rm "$f"; exit 0; fi; touch "$f"; exit 1\n' "$$" > "$jw/tests/tests/jit/flaky.sh"
+decisions="$(jj run | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{for(const r of JSON.parse(s).results)console.log(r.id+"="+r.decision)})' | tr '\n' ' ')"
+[ "$decisions" = "mul=report sq=land add=discard net=discard both=discard flaky=discard neg=report " ] || fail "JiT classified $decisions"
+! git -C "$work/jr" worktree list | grep -q 'wt-' || fail "JiT left its worktrees behind"
+ok "JiT runs each test at the change and its parent: a new-function bug is reported (exit 77 or an exists check marks code not there yet), a test of new code lands, passes-on-both, fails-on-both, network and flaky failures are dropped"
+printf '{}' > "$jw/verdicts.json"
+[ "$(jj finish | field catches)" = "[]" ] || fail "an unassessed catch was reported"
+printf '{"mul":"should-fail"}' > "$jw/verdicts.json"
+out="$(jj finish)"
+grep -q '"risk": "mul adds"' <<<"$out" || fail "the assessed catch was not reported"
+[ -f "$work/jr/tests/jit/sq.sh" ] || fail "landing missed the test that pins new code"
+[ ! -e "$work/jr/tests/jit/mul.sh" ] || fail "landing copied a failing test"
+ok "JiT finish reports only catches the assessor upheld, and lands the tests that pin the change"
+pr='{"tool_name":"mcp__github__create_pull_request","tool_input":{"owner":"o","repo":"jr","head":"feat"},"cwd":"'"$work/jr"'"}'
+hk() { (cd "$work" && node "$jit" hook <<<"$1"); }
+[ -z "$(hk "$pr")" ] || fail "the PR hook refused a branch with a JiT report"
+(cd "$work/jr" && g add tests && g commit -qm "jit: landed test")
+[ -z "$(hk "$pr")" ] || fail "committing the landed test invalidated the report"
+printf 'mul(){ echo $(( $1 * $2 )); }\nneg2(){ echo $(( 0 - $1 )); }\nsq2(){ echo $(( $1 * $1 )); }\none(){ echo 1; }\ntwo(){ echo 2; }\nthree(){ echo 3; }\n' >> "$work/jr/lib.sh" && (cd "$work/jr" && g commit -qam more)
+grep -q '"deny"' <<<"$(hk "$pr")" || fail "the PR hook allowed a branch changed since JiT ran"
+grep -q '"deny"' <<<"$(hk "${pr/mcp__github__/mcp__GitHub__}")" || fail "the PR hook missed the other GitHub tool spelling"
+[ -z "$(hk "${pr/\"repo\":\"jr\"/\"repo\":\"elsewhere\"}")" ] || fail "the PR hook refused a PR for a repository not in this session"
+[ -z "$(hk 'not json')" ] || fail "the PR hook did not fail open on bad input"
+git -C "$work/jr" worktree add -q --detach "$work/jr-wt" && (cd "$work/jr-wt" && g commit -q --allow-empty -m wt)
+printf 'x(){ :; }\ny(){ :; }\nz(){ :; }\n' >> "$work/jr-wt/lib.sh" && printf 'w(){ :; }\nv(){ :; }\nu(){ :; }\n' > "$work/jr-wt/more.sh" && (cd "$work/jr-wt" && g add . && g commit -qm wt-change)
+grep -q '"deny"' <<<"$(cd "$work/jr-wt" && node "$jit" hook <<<"${pr/\"cwd\":\"$work\/jr\"/\"cwd\":\"$work\/jr-wt\"}")" || fail "the PR hook let a worktree's PR through by its folder name"
+git -C "$work/jr" worktree remove --force "$work/jr-wt"
+(cd "$work/jr" && node "$jit" skip --reason "low risk: helpers only" >/dev/null)
+[ -z "$(hk "$pr")" ] || fail "a judged skip did not satisfy the PR hook"
+node -e 'const m=require(process.argv[1]).hooks.PreToolUse[0].matcher;for(const t of["mcp__github__create_pull_request","mcp__GitHub__create_pull_request"])if(!new RegExp("^("+m+")$").test(t))process.exit(1)' "$repo/plugins/jit/hooks/hooks.json" || fail "the PR hook's matcher misses a GitHub tool name"
+ok "the PR hook needs a JiT report or a judged skip for the branch, survives committing landed tests, matches both GitHub spellings, and fails open"
+gd() { (cd "$work" && node "$jit" guard <<<"$1"); }
+grep -q '"deny"' <<<"$(gd '{"agent_type":"jit:generator","tool_name":"Write","tool_input":{"file_path":"/r/lib.sh"}}')" || fail "the generator could write outside .work/jit/"
+[ -z "$(gd '{"agent_type":"jit:generator","tool_name":"Write","tool_input":{"file_path":"/r/.work/jit/abc/tests.json"}}')" ] || fail "the generator could not write its manifest"
+grep -q '"deny"' <<<"$(gd '{"agent_type":"jit:assessor","tool_name":"Write","tool_input":{"file_path":"/r/.work/jit/abc/tests.json"}}')" || fail "the assessor could write more than verdicts.json"
+[ -z "$(gd '{"tool_name":"Write","tool_input":{"file_path":"/r/lib.sh"}}')" ] || fail "the JiT guard restricted the main session"
+ok "the JiT generator writes only under .work/jit/, the assessor only its verdicts"
+}
+
 # Magister's eval grader, on fixtures (no model), and every case well formed.
 node --test "$repo/tests/evals/magister/grade.test.js" >/dev/null 2>&1 || fail "Magister's eval grader"
 node -e '
@@ -286,8 +400,18 @@ for (const f of fs.readdirSync(p)) { const c=JSON.parse(fs.readFileSync(p+f));
   if (["flaw","literal"].includes(c.kind)&&!(c.expect.mention_any||[]).length) throw new Error(f); }' "$repo" || fail "a Magister eval case is malformed"
 ok "Magister's eval grader passes its tests, and every eval case is well formed"
 
+# The magister-avatar mod ships through plugins.lock, so a broken one would reach every machine.
+grep -qx 'magister-avatar@claude-setup harry-burton-dev/claude-setup' "$repo/plugins.lock" || fail "magister-avatar is not in plugins.lock"
+if command -v claude >/dev/null 2>&1; then
+  claude plugin validate "$repo/plugins/magister-avatar" 2>&1 | grep -q 'Validation passed' || fail "magister-avatar does not validate"
+  claude plugin test "$repo/plugins/magister-avatar" >/dev/null 2>&1 || fail "magister-avatar's tests"
+  ok "magister-avatar is in plugins.lock, validates, and passes its tests"
+else
+  printf 'skip: claude not installed, magister-avatar not tested\n'
+fi
+
 if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" || fail "shellcheck"
+  shellcheck "$repo/install.sh" "$repo/cloud/setup.sh" "$repo/cloud/bootstrap.sh" "$repo/tests/test.sh" "$hook" "$repo/tests/hook-contract.sh" "$repo/tests/jit-backtest.sh" || fail "shellcheck"
   ok "shellcheck clean"
 else
   printf 'skip: shellcheck not installed\n'

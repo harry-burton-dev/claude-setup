@@ -19,11 +19,17 @@ outerpale-startup@claude-setup harry-burton-dev/claude-setup
 # Magister: a background second perspective at design, UI and decision moments; findings go to OneDrive Claude/magister/. Kept in this repository.
 magister@claude-setup harry-burton-dev/claude-setup
 
+# magister-avatar: a mod. In the desktop app's side pane, Magister's avatar shows while it runs; its report reaches the session as the finding's link only. Kept in this repository.
+magister-avatar@claude-setup harry-burton-dev/claude-setup
+
 # outerpale-mem: each repository's memory in OneDrive Claude/memory/<repo>/, loaded at session start, consolidated by a nightly dream. Kept in this repository.
 outerpale-mem@claude-setup harry-burton-dev/claude-setup
 
 # outerpale-mem-global: global memory every session shares (OneDrive Claude/memory/_global/). Kept in this repository; leave it out to keep a machine's sessions without it.
 outerpale-mem-global@claude-setup harry-burton-dev/claude-setup
+
+# JiT: just-in-time catching tests before every PR, in every repository (docs/design/jit-testing.md). Kept in this repository.
+jit@claude-setup harry-burton-dev/claude-setup
 
 # Langfuse observability: a Stop/SessionEnd hook that sends each turn's prompt, model output and tool calls to Harry's self-hosted Langfuse. Published by Langfuse; pinned in marketplace.json.
 # Config comes from environment variables (they win over the plugin's setup wizard): LANGFUSE_BASE_URL, placeholder LANGFUSE_PUBLIC_KEY/SECRET_KEY

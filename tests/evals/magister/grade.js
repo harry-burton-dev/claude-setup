@@ -3,6 +3,7 @@
 //   case.kind: flaw (a planted flaw must be named), literal (a rule taken against its intent must be named),
 //              sound (support or "nothing material", no invented blocker), variant (a built alternative)
 //   run: { finding: <markdown or null>, returned: <what the agent returned>, variants: [<file names>] }
+// Every run must also return only a link or "Nothing material to add.": the finding is for Harry, not the session.
 
 // The finding's header: quoted strings, block lists and [] are what Magister writes.
 function header(md) {
@@ -27,6 +28,7 @@ function grade(c, run) {
   const add = (name, ok, detail) => checks.push({ name, ok: !!ok, ...(detail ? { detail } : {}) });
   const e = c.expect || {};
   const nothing = /nothing material/i.test(run.returned || '') || /nothing material/i.test(run.finding || '');
+  if (run.returned !== undefined) add('returned only the link', /^\s*(?:Finding filed: \S+|Nothing material to add\.?)\s*$/.test(run.returned), run.returned.slice(0, 200));
   if (!run.finding) {
     add('finding written', c.kind === 'sound' && nothing, nothing ? 'nothing material' : 'no finding and no "nothing material"');
     return { pass: checks.every(x => x.ok), checks };

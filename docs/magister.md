@@ -1,6 +1,6 @@
 # Magister
 
-Magister is a background second perspective. At design, UI and decision moments, Claude can run it without being asked, and it never interrupts. This page is the contract for the viewer that reads its log, and for its evals. How it fits the workflow is in `docs/workflow.md`.
+Magister is a background second perspective for Harry. At design, UI and decision moments, Claude can run it without being asked, and it never interrupts. It advises Harry, not the session: a finding is written for him, and the session that launched it gets only the link (`Finding filed: <link>`, or `Nothing material to add.`). The `guard` hook refuses the session, and any agent but Magister, reads of `~/.magister/` and OneDrive `Claude/magister/`. This page is the contract for the viewer that reads its log, and for its evals. How it fits the workflow is in `docs/workflow.md`.
 
 ## The log
 
@@ -60,6 +60,8 @@ The ratings are the ground truth. The numbers to watch are the share that is act
 - 5 sound designs, where it must support the design or add nothing, and must not invent a blocker;
 - 4 rules followed against their intent, which it must name;
 - 3 UI briefs, where it must build a variant.
+
+Every case also checks that Magister returned only the link or "Nothing material to add.", none of the finding.
 
 `grade.js` scores each run by code. `node tests/evals/magister/grade.test.js` tests the grader on fixtures, with no model.
 
