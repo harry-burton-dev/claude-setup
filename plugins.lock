@@ -8,7 +8,7 @@
 # Needs Claude Code 2.1.271 or later. Run as /egm:egm-brainstorm, /egm:egm-draft, /egm:egm-review.
 egm@egm google/elephant-goldfish-model
 
-# Outer-Pale dev-ops: Linear epics and issues in the Outer-Pale workspace, and Langfuse traces. Needs Node 18+.
+# Outer-Pale dev-ops: Linear issues, projects and initiatives in the Outer-Pale workspace, one PR per issue. Needs Node 18+.
 outerpale-devops@outerpale harry-burton-dev/outerpale-devops
 
 # Session start work for every repository: fetches its project CLAUDE.md from projects/. Kept in this repository.

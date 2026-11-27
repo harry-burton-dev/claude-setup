@@ -22,7 +22,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 | Plugin | From | Does |
 |---|---|---|
 | `egm` | google/elephant-goldfish-model | Design docs: `/egm:egm-brainstorm` → `/egm:egm-draft` → `/egm:egm-review`, plus drift reports against the code. Vanilla, no templates of Harry's own |
-| `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only, Langfuse traces. The contract below needs 0.5.0 or later |
+| `outerpale-devops` | harry-burton-dev/outerpale-devops | Project management in Linear (below): the scope question, one PR per issue, Linear writes to the Outer-Pale workspace only. The contract below needs 0.5.0 or later |
 | `outerpale-startup` | this repository's marketplace | Project `CLAUDE.md` at session start; `project-claude-md` skill to write one to Anthropic's guidance; the intent reviewer (below) |
 | `outerpale-mem` | this repository's marketplace | Memory across sessions, in OneDrive (`docs/memory.md`) |
 | `outerpale-mem-global` | this repository's marketplace | Global memory every session shares (`docs/memory.md`) |
@@ -59,7 +59,7 @@ A pushed change reaches an environment on its next VM build: within 7 days, or a
 ## Known gaps
 
 - Unconfirmed: whether a file the setup script writes into a checkout survives a cached VM start (the marker test).
-- Langfuse needs keys that cloud sessions don't have, so cloud sessions send no traces.
+- Session traces go to Langfuse through Claude Code's own OpenTelemetry export (beta), configured in each cloud environment's variables, with the auth header among them. Each environment and each machine needs them set; `outerpale-devops` no longer sends anything.
 - EGM's own reviews are thrown away with `.work/`; nothing keeps a record of them yet.
 
 ## Project management in Linear
