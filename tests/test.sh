@@ -273,10 +273,17 @@ if [ "${1:-}" = "--vm" ]; then
     cmp -s /opt/claude-setup/CLAUDE.md /root/.claude/CLAUDE.md
     grep -q "^claude-setup" /root/.claude/claude-setup.status
     grep -q "^warnings: none" /root/.claude/claude-setup.status
-    command -v pnpm >/dev/null
+    PATH="/opt/oldnode/bin:$PATH" command -v pnpm >/dev/null
     shellcheck /opt/claude-setup/install.sh /opt/claude-setup/cloud/setup.sh /opt/claude-setup/cloud/bootstrap.sh /opt/claude-setup/tests/test.sh
     echo "vm: shellcheck clean, pnpm on PATH, no setup warnings"
     echo "vm: setup.sh ran as root and installed /root/.claude/CLAUDE.md"
+    # The guard: a node that is still not 26 after the install is a warning, not a success.
+    mkdir -p /tmp/oldnode
+    printf "#!/bin/sh\necho v22.0.0\n" > /tmp/oldnode/node
+    chmod +x /tmp/oldnode/node
+    PATH="/tmp/oldnode:/tmp/bin:$PATH" bash /opt/claude-setup/cloud/setup.sh > /tmp/guard.log 2>&1 || true
+    grep -q "^warning: node 26 is not the default node.*node is v22.0.0" /root/.claude/claude-setup.status || { cat /tmp/guard.log; exit 1; }
+    echo "vm: a node that is not 26 after the install is a warning"
   ' || fail "cloud/setup.sh in ubuntu:24.04"
   ok "cloud/setup.sh works in a fresh ubuntu:24.04 container"
 fi
