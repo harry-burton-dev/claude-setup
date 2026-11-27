@@ -69,7 +69,7 @@ function changes(dir, from, to) {
 }
 
 const reportDir = (dir, sha) => path.join(dir, '.work', 'jit', sha);
-function writeReport(dir, sha, report) { writeJson(path.join(reportDir(dir, sha), 'report.json'), { sha, repo: path.basename(dir), at: new Date().toISOString(), ...report }); }
+function writeReport(dir, sha, report) { writeJson(path.join(reportDir(dir, sha), 'report.json'), { sha, repo: repoName(dir), at: new Date().toISOString(), ...report }); }
 
 function triage(dir) {
   const sha = git(dir, 'rev-parse', 'HEAD');
@@ -196,9 +196,15 @@ function finish(dir) {
 
 // --- The pre-PR hook. Fails open: any error here allows the PR. ---
 
+// A repository's name, not its folder's: a linked worktree's folder can be called anything.
+function repoName(top) {
+  const common = path.resolve(top, git(top, 'rev-parse', '--git-common-dir'));
+  return path.basename(common) === '.git' ? path.basename(path.dirname(common)) : path.basename(top);
+}
+
 function prRepoDir(cwd, name) {
   const top = tryGit(cwd, 'rev-parse', '--show-toplevel');
-  if (top && (!name || path.basename(top) === name)) return top;
+  if (top && (!name || repoName(top) === name)) return top;
   if (name && fs.existsSync(path.join(cwd, name, '.git'))) return path.join(cwd, name);
   return null;
 }
@@ -224,7 +230,7 @@ function hook(input) {
   if (!dir || covered(dir)) return;
   const sha = git(dir, 'rev-parse', '--short', 'HEAD');
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny',
-    permissionDecisionReason: `jit: ${path.basename(dir)} has no JiT report for ${sha}. Run the jit:run skill first (it skips tiny or low-risk changes itself), then open the PR.` } }));
+    permissionDecisionReason: `jit: ${repoName(dir)} has no JiT report for ${sha}. Run the jit:run skill first (it skips tiny or low-risk changes itself), then open the PR.` } }));
 }
 
 // Confines the agents' writes. Other sessions and agents pass untouched.

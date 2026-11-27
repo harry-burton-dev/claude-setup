@@ -24,8 +24,13 @@ function destinations() {
 }
 // The session's repositories, found as outerpale-startup's session-start hook finds them: the one it
 // starts in, or, from a non-git folder (a cloud session with several), each git repository directly under it.
+// A repository's name, not its folder's: a linked worktree's folder can be called anything.
+function repoName(top) {
+  const common = path.resolve(top, execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: top, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim());
+  return path.basename(common) === '.git' ? path.basename(path.dirname(common)) : path.basename(top);
+}
 function repos(cwd) {
-  try { return [path.basename(execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim())]; } catch {}
+  try { return [repoName(execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim())]; } catch {}
   try { return fs.readdirSync(cwd).filter(n => fs.existsSync(path.join(cwd, n, '.git'))).sort(); } catch { return []; }
 }
 function out(obj) { process.stdout.write(JSON.stringify(obj)); }

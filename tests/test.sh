@@ -347,6 +347,10 @@ grep -q '"deny"' <<<"$(hk "$pr")" || fail "the PR hook allowed a branch changed 
 grep -q '"deny"' <<<"$(hk "${pr/mcp__github__/mcp__GitHub__}")" || fail "the PR hook missed the other GitHub tool spelling"
 [ -z "$(hk "${pr/\"repo\":\"jr\"/\"repo\":\"elsewhere\"}")" ] || fail "the PR hook refused a PR for a repository not in this session"
 [ -z "$(hk 'not json')" ] || fail "the PR hook did not fail open on bad input"
+git -C "$work/jr" worktree add -q --detach "$work/jr-wt" && (cd "$work/jr-wt" && g commit -q --allow-empty -m wt)
+printf 'x(){ :; }\ny(){ :; }\nz(){ :; }\n' >> "$work/jr-wt/lib.sh" && printf 'w(){ :; }\nv(){ :; }\nu(){ :; }\n' > "$work/jr-wt/more.sh" && (cd "$work/jr-wt" && g add . && g commit -qm wt-change)
+grep -q '"deny"' <<<"$(cd "$work/jr-wt" && node "$jit" hook <<<"${pr/\"cwd\":\"$work\/jr\"/\"cwd\":\"$work\/jr-wt\"}")" || fail "the PR hook let a worktree's PR through by its folder name"
+git -C "$work/jr" worktree remove --force "$work/jr-wt"
 (cd "$work/jr" && node "$jit" skip --reason "low risk: helpers only" >/dev/null)
 [ -z "$(hk "$pr")" ] || fail "a judged skip did not satisfy the PR hook"
 node -e 'const m=require(process.argv[1]).hooks.PreToolUse[0].matcher;for(const t of["mcp__github__create_pull_request","mcp__GitHub__create_pull_request"])if(!new RegExp("^("+m+")$").test(t))process.exit(1)' "$repo/plugins/jit/hooks/hooks.json" || fail "the PR hook's matcher misses a GitHub tool name"
