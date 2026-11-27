@@ -49,6 +49,6 @@ These load everywhere, cloud included, so every one costs context in every sessi
 - **Coding:** `code-review`, `engineering`, `ci-optimizer`, `claude-code-setup`, `github`, `frontend-design`
 - **Not coding:** `product-management`, `design`, `productivity`, `cowork-plugin-management`, `project-artifact`, `langfuse`, `deeper-tasks`
 - **Desktop only, no use in the cloud:** `desktop-commander`
-- **One project only:** `outerpale-devops`. Take it off the account and list it in `ENV_PLUGINS` in the Outer-Pale environment's setup script. Plugins are never committed to project repositories
+- **One project only:** `outerpale-devops`. Since 27 Nov 2026 it is listed in `ENV_PLUGINS` in the Outer-Pale environment's setup script (`outerpale-devops@outerpale harry-burton-dev/outerpale-devops`), so keep it off the account. Plugins are never committed to project repositories
 
 Turn off what a coding session doesn't need, at https://claude.ai/customize/plugins.
