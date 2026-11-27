@@ -9,7 +9,7 @@ The state of Harry's Claude setup at the end of the session that built most of i
 | User `CLAUDE.md`, `install.sh`, `cloud/bootstrap.sh` → `cloud/setup.sh` | claude-setup | `main` | `README.md`, `docs/cloud-environment.md` |
 | `egm` (design docs) | google/elephant-goldfish-model | 0.1.1 | its README |
 | `outerpale-devops`: scope question, one PR per issue, Linear guard | harry-burton-dev/outerpale-devops | 0.6.0 (Langfuse sender removed) | its README |
-| `outerpale-startup`: project `CLAUDE.md` from `projects/`, `.work/` kept out of git, suggestion hooks, intent reviewer | claude-setup `plugins/` | 0.4.1 | `docs/workflow.md` |
+| `outerpale-startup`: project `CLAUDE.md` from `projects/`, `.work/` kept out of git, suggestion hooks, intent reviewer | claude-setup `plugins/` | 0.5.0 | `docs/workflow.md` |
 | `magister`: background second perspective, findings in OneDrive `Claude/magister/` | claude-setup `plugins/` | 0.1.0 | `docs/magister.md` |
 | `outerpale-mem`: repository memory in OneDrive `Claude/memory/<repo>/` | claude-setup `plugins/` | 0.1.1 | `docs/memory.md` |
 | `outerpale-mem-global`: global memory in OneDrive `Claude/memory/_global/` | claude-setup `plugins/` | 0.1.0 | `docs/memory.md` |

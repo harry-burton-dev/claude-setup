@@ -12,7 +12,7 @@ Project repositories hold code and nothing about Claude. Everything Claude needs
 |---|---|---|---|
 | Account | claude.ai plugins and connectors | Every session, everywhere | Linear, GitHub, Google, Sentry, Todoist connectors; general plugins (`engineering`, `code-review`, …) |
 | Machine | `install.sh` here, run by hand on the PC and server, and by `cloud/bootstrap.sh` → `cloud/setup.sh` on each cloud VM build | Once per install or VM build | `~/.claude/CLAUDE.md` (generic rules), the plugins in `plugins.lock`, Node 26 and tools on cloud VMs |
-| Session | The `outerpale-startup` plugin's SessionStart hook | Every session start | The repository's project `CLAUDE.md`, copied from `projects/<repo>.md`, and `.work/` kept out of git |
+| Session | The `outerpale-startup` plugin's SessionStart hook | Every session start | Each repository's project `CLAUDE.md`, copied from `projects/<repo>.md`, and `.work/` kept out of git: the repository the session starts in, or, when it starts in a non-git folder (a cloud session with several repositories), each git repository directly under it |
 | Project | `projects/<repo>.md` here | Loaded as `./CLAUDE.md` | That project's commands, rules and gotchas |
 | Global memory | OneDrive `Claude/memory/_global/` | Loaded in every session by `outerpale-mem-global`; consolidated nightly | About Harry, how he works, his environment, cross-project lessons |
 | Memory | OneDrive `Claude/memory/<repo>/` | Loaded at session start by `outerpale-mem`; consolidated nightly | What past sessions learned: decisions, preferences, patterns, known issues |

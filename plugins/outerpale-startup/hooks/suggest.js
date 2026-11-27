@@ -28,26 +28,36 @@ function say(event, lines) {
 function normal(cmd) {
   return String(cmd || '').split('\n')[0].replace(/^\s*(?:cd\s+\S+\s*&&\s*)+/, '').replace(/\s+/g, ' ').trim();
 }
-function projectFile(cwd) { try { return fs.readFileSync(path.join(cwd || process.cwd(), 'CLAUDE.md'), 'utf8'); } catch { return ''; } }
+function read(f) { try { return fs.readFileSync(f, 'utf8'); } catch { return ''; } }
+// The session's repositories, as the session-start hook finds them: none listed when it starts inside
+// one; when it starts in a non-git folder (a cloud session with several), each git repository under it.
+function repos(cwd) {
+  for (let d = cwd; ; d = path.dirname(d)) { if (fs.existsSync(path.join(d, '.git'))) return []; if (d === path.dirname(d)) break; }
+  try { return fs.readdirSync(cwd).filter(n => fs.existsSync(path.join(cwd, n, '.git'))).sort(); } catch { return []; }
+}
+function projectFile(cwd, names) { return [read(path.join(cwd, 'CLAUDE.md')), ...names.map(n => read(path.join(cwd, n, 'CLAUDE.md')))].join('\n'); }
+function target(names) { return names.length > 1 ? `the CLAUDE.md of the repository it belongs to (${names.join(', ')})` : 'the project CLAUDE.md'; }
 
 function main(mode, input) {
+  const cwd = input.cwd || process.cwd();
+  const names = repos(cwd);
   if (mode === 'prompt') {
     const p = String(input.prompt || '');
     if (MACHINE.test(p)) return;
     const lines = [];
-    if (CORRECTION.test(p)) lines.push(`the user has just corrected you. If what they said is a rule, command or gotcha for this project that a future session should know, offer in one line to add it to the project CLAUDE.md (${SKILL} skill), and add it only on a yes. If it is a one-off, say nothing about it.`);
+    if (CORRECTION.test(p)) lines.push(`the user has just corrected you. If what they said is a rule, command or gotcha for this project that a future session should know, offer in one line to add it to ${target(names)} (${SKILL} skill), and add it only on a yes. If it is a one-off, say nothing about it.`);
     if (lines.length) say('UserPromptSubmit', lines);
     return;
   }
   if (mode === 'bash' && input.tool_name === 'Bash') {
     const cmd = normal(input.tool_input && input.tool_input.command);
-    if (!cmd || EVERYDAY.test(cmd) || INLINE.test(cmd) || projectFile(input.cwd).includes(cmd)) return;
+    if (!cmd || EVERYDAY.test(cmd) || INLINE.test(cmd) || projectFile(cwd, names).includes(cmd)) return;
     const st = load(input.session_id);
     st.runs[cmd] = (st.runs[cmd] || 0) + 1;
     const due = st.runs[cmd] >= RUNS && !st.said.includes(cmd);
     if (due) st.said.push(cmd);
     save(input.session_id, st);
-    if (due) say('PostToolUse', [`\`${cmd}\` has now been run ${st.runs[cmd]} times in this session. If it is one of this project's commands (install, check, test, run), offer in one line to add it to the project CLAUDE.md (${SKILL} skill), and add it only on a yes.`]);
+    if (due) say('PostToolUse', [`\`${cmd}\` has now been run ${st.runs[cmd]} times in this session. If it is one of this project's commands (install, check, test, run), offer in one line to add it to ${target(names)} (${SKILL} skill), and add it only on a yes.`]);
   }
 }
 
