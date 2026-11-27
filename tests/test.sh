@@ -82,9 +82,9 @@ grep -qx '/.work/' "$work/demo/.git/info/exclude" || fail "hook did not keep .wo
 git init -q "$work/committed" && printf '# own\n' > "$work/committed/CLAUDE.md"
 (cd "$work/committed" && HOME="$work/hookhome" bash "$hook") >/dev/null
 grep -qx '/.work/' "$work/committed/.git/info/exclude" || fail ".work/ not excluded in a repository with its own CLAUDE.md"
-mkdir -p "$work/committed/.work/egm" && touch "$work/committed/.work/egm/draft.md"
+mkdir -p "$work/committed/.work/notes" && touch "$work/committed/.work/notes/draft.md"
 [ "$(git -C "$work/committed" status --porcelain)" = "?? CLAUDE.md" ] || fail ".work/ shows in git status"
-ok "hook keeps .work/ (scratch, EGM files, reviews) out of git in every repository"
+ok "hook keeps .work/ (scratch and reviews) out of git in every repository"
 git init -q "$work/fresh"
 out="$(cd "$work/fresh" && HOME="$work/hookhome" bash "$hook")"
 [ ! -e "$work/fresh/CLAUDE.md" ] || fail "hook wrote a CLAUDE.md nobody has written"

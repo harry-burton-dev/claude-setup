@@ -4,9 +4,9 @@
 # cloud environment setup script.
 # Format: plugin@marketplace  marketplace-source (owner/repo or git URL)
 #
-# Elephant-Goldfish Model: brainstorm, draft and review design docs with fresh-context reviewers.
-# Needs Claude Code 2.1.271 or later. Run as /egm:egm-brainstorm, /egm:egm-draft, /egm:egm-review.
-egm@egm google/elephant-goldfish-model
+# GSD Core: the build methodology (discuss, plan, execute, verify, ship), one phase per Linear issue.
+# State lives in each repository's .planning/, which is committed. Published plugin, not the next branch.
+gsd-core@gsd-core open-gsd/gsd-core
 
 # Outer-Pale dev-ops: Linear issues, projects and initiatives in the Outer-Pale workspace, one PR per issue. Needs Node 18+.
 outerpale-devops@outerpale harry-burton-dev/outerpale-devops
