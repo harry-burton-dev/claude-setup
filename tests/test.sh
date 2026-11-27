@@ -199,11 +199,33 @@ ok "a successful OneDrive upload clears its outbox file; a failed one keeps it"
 # outerpale-mem: memory kept in OneDrive, loaded at session start, proposals uploaded before the session ends.
 memjs="$repo/plugins/outerpale-mem/hooks/mem.js"
 mm() { (cd "$1" && HOME="$work/memhome" node "$memjs" "$2" <<<"$3"); }
-out="$(mm "$work/demo" session-start '{}')"
+# The text Claude reads: a hook's additionalContext, or its Stop reason.
+ctx() { node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{if(s){const o=JSON.parse(s);process.stdout.write((o.hookSpecificOutput||{}).additionalContext||o.reason||"")}})'; }
+out="$(mm "$work/demo" session-start '{}' | ctx)"
 grep -q 'outerpale-mem:loader' <<<"$out" || fail "session start did not ask for memory to be loaded"
 grep -q 'Claude/memory/demo/' <<<"$out" || fail "session start did not name the repository's memory folder"
-[ -z "$(mm "$work" session-start '{}')" ] || fail "memory was loaded outside a git repository"
-ok "session start loads the repository's memory, and nothing outside a repository"
+grep -q 'repository name "demo"' <<<"$out" || fail "session start did not give the loader the repository's name"
+[ "$(grep -o 'repository name "[^"]*"' <<<"$out" | sort -u | wc -l)" = 1 ] || fail "a single-repository session asked for more than one repository's memory"
+ok "session start in a repository loads that repository's memory"
+# A cloud session with several repositories starts in their non-git parent folder ($work/multi, from
+# the outerpale-startup tests above): each repository's memory is asked for, by name.
+out="$(mm "$work/multi" session-start '{}' | ctx)"
+for r in demo other; do
+  grep -q "repository name \"$r\"" <<<"$out" || fail "session start in a parent folder did not ask for $r's memory"
+  grep -q "Claude/memory/$r/" <<<"$out" || fail "session start in a parent folder did not name $r's memory folder"
+done
+grep -q 'repo' <<<"$(grep -i 'save' <<<"$out")" || fail "a multi-repository session was not told to name the repository when saving"
+# Both plugins find the same repositories (each plugin is installed on its own, so they can't share code):
+# outerpale-startup's are the ones it keeps .work/ out of.
+mkdir -p "$work/both/notgit" && git init -q "$work/both/b" && git init -q "$work/both/a" && touch "$work/both/file"
+(cd "$work/both" && HOME="$work/hookhome" bash "$hook") >/dev/null
+startup_repos="$(cd "$work/both" && for d in */; do if grep -qsx '/.work/' "$d.git/info/exclude"; then printf '%s ' "${d%/}"; fi; done)"
+mem_repos="$(mm "$work/both" session-start '{}' | ctx | grep -o 'repository name "[^"]*"' | sed 's/.*"\(.*\)"/\1/' | tr '\n' ' ')"
+[ "$startup_repos" = "a b " ] || fail "outerpale-startup found $startup_repos, not a b"
+[ "$mem_repos" = "$startup_repos" ] || fail "outerpale-mem ($mem_repos) and outerpale-startup ($startup_repos) found different repositories"
+mkdir -p "$work/empty"
+[ -z "$(mm "$work/empty" session-start '{}')" ] || fail "memory was loaded in a folder holding no git repository"
+ok "from a parent folder, each repository's memory is loaded by name, as outerpale-startup finds them; none from a folder with none"
 mkdir -p "$work/memhome/.outerpale-mem/outbox" && touch "$work/memhome/.outerpale-mem/outbox/20261127T1000-canary.md"
 grep -q '1 memory proposal' <<<"$(mm "$work/demo" session-start '{}')" || fail "an unsent proposal was not flagged at session start"
 out="$(mm "$work/demo" stop '{"stop_hook_active":false}')"
@@ -213,6 +235,12 @@ mm "$work/demo" uploaded '{"tool_name":"mcp__Microsoft_365__sharepoint_upload_fi
 [ ! -e "$work/memhome/.outerpale-mem/outbox/20261127T1000-canary.md" ] || fail "an uploaded proposal stayed in the outbox"
 [ -z "$(mm "$work/demo" stop '{"stop_hook_active":false}')" ] || fail "the stop check blocked with an empty outbox"
 ok "a session can't finish with memory proposals not uploaded, and isn't held twice; an upload clears the outbox"
+printf -- '---\nname: "x"\nrepo: "other"\n---\nx\n' > "$work/memhome/.outerpale-mem/outbox/20261127T1100-other.md"
+out="$(mm "$work/multi" stop '{"stop_hook_active":false}')"
+grep -q '"block"' <<<"$out" || fail "a multi-repository session could finish with the second repository's proposal not uploaded"
+grep -q 'Claude/memory/other/' <<<"$out" || fail "the stop check did not name the proposal's repository"
+rm "$work/memhome/.outerpale-mem/outbox/20261127T1100-other.md"
+ok "the stop check catches a proposal for the second repository, and names where it goes"
 grep -q '"deny"' <<<"$(mm "$work/demo" guard '{"agent_type":"outerpale-mem:loader","tool_name":"Write","tool_input":{"file_path":"/x"}}')" || fail "the loader could write"
 [ -z "$(mm "$work/demo" guard '{"tool_name":"Write","tool_input":{"file_path":"/x"}}')" ] || fail "the main session was restricted"
 ok "the memory loader only reads"
