@@ -15,6 +15,11 @@
       "description": "Magister: a background second perspective at design, UI and decision moments; findings go to OneDrive."
     },
     {
+      "name": "magister-avatar",
+      "source": "./plugins/magister-avatar",
+      "description": "Desktop side pane: Magister's avatar while it runs, and its report cut to the finding's link."
+    },
+    {
       "name": "outerpale-mem",
       "source": "./plugins/outerpale-mem",
       "description": "Memory that survives cloud sessions: OneDrive Claude/memory/<repo>/, loaded at session start, consolidated nightly."

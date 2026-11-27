@@ -45,3 +45,12 @@ test('no finding and no "nothing material" fails, and a broken header fails', ()
   assert.equal(grade(flaw, { finding: null, returned: 'done' }).pass, false);
   assert.equal(grade(flaw, { finding: '# no header\nidempotency' }).pass, false);
 });
+
+test('a run that returns any of its finding to the session fails; a link or "nothing material" passes', () => {
+  const sound = { kind: 'sound', expect: {} };
+  assert.equal(grade(sound, { finding: null, returned: 'Nothing material to add.' }).pass, true);
+  assert.equal(grade(flaw, { finding: fx('caught.md'), returned: 'Finding filed: https://x.sharepoint.com/f.md' }).pass, true);
+  const leaked = grade(flaw, { finding: fx('caught.md'), returned: 'Retries will deliver duplicates. Finding filed: https://x/f.md' });
+  assert.equal(leaked.pass, false);
+  assert.ok(leaked.checks.some(c => c.name === 'returned only the link' && !c.ok));
+});

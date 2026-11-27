@@ -1,0 +1,6 @@
+{
+  "name": "magister-avatar",
+  "version": "0.1.0",
+  "description": "Shows Magister in a side pane while it runs, and passes the session only its finding's link.",
+  "types": "./types/index.d.ts"
+}
