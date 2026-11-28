@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Gives a new GitHub repository its baseline before any code: the files in templates/repo/
-# (except CLAUDE.md, which lives in projects/), squash-only auto-merge, secret scanning with
-# push protection, Dependabot, and a ruleset on main that requires CI's `ci` check.
+# (CI, Dependabot, .gitattributes; no Claude setup), squash-only auto-merge, secret scanning
+# with push protection, Dependabot, and a ruleset on main that requires CI's `ci` check.
 #   ./new-repo.sh <name>     creates harry's <name> as a public repository, or updates its settings
 # Run it where gh is signed in as you (PC or server). Safe to run again.
 set -euo pipefail
@@ -19,7 +19,6 @@ if [ -z "$(git ls-remote --heads "$url")" ]; then
   trap 'rm -rf "$work"' EXIT
   git -C "$work" init -q -b main
   cp -r "$here/templates/repo/." "$work/"
-  rm "$work/CLAUDE.md"
   git -C "$work" add -A
   git -C "$work" commit -q -m "Add the repository baseline"
   git -C "$work" push -q "$url" main

@@ -50,7 +50,14 @@ src="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugins_lock="$(mktemp)"
 cat "$src/plugins.lock" > "$plugins_lock"
 printf '%s\n' "${ENV_PLUGINS:-}" >> "$plugins_lock"
-PLUGINS_LOCK="$plugins_lock" bash "$src/install.sh"
+# A failing setup script stops every session in the environment from starting, so a skill or plugin
+# that fails to install is a warning in the status file, not a failed setup.
+install_log="$(mktemp)"
+install_status=0
+PLUGINS_LOCK="$plugins_lock" bash "$src/install.sh" > "$install_log" 2>&1 || install_status=$?
+cat "$install_log"
+[ "$install_status" -eq 0 ] || warn "install.sh: $(grep -E 'failed|skipped|no SKILL.md' "$install_log" | sed 's/^claude-setup: //' | paste -sd ';' -)"
+rm -f "$install_log"
 rm -f "$plugins_lock"
 commit="$(git -C "$src" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 

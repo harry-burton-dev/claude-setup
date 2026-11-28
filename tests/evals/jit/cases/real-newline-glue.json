@@ -1,0 +1,17 @@
+{
+  "kind": "real-bug",
+  "intent": "The session-start hook now adds /.work/ to every repository's .git/info/exclude, so scratch never reaches git.",
+  "files": {
+    "hooks/session-start.sh": "#!/usr/bin/env bash\nset -euo pipefail\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null)\" || exit 0\nexclude=\"$root/.git/info/exclude\"\nmkdir -p \"$(dirname \"$exclude\")\"\nkeep_out() { grep -qx \"$1\" \"$exclude\" 2>/dev/null || echo \"$1\" >> \"$exclude\"; }\nkeep_out '/.work/'\n"
+  },
+  "test": {
+    "id": "real-newline-glue",
+    "risk": "an exclude file without a trailing newline gets /.work/ glued onto its last pattern",
+    "file": "tests/jit/exclude-no-newline.sh",
+    "body": "set -e\nhook=\"$PWD/hooks/session-start.sh\"; d=$(mktemp -d); git init -q \"$d/r\"\nprintf '*.log' > \"$d/r/.git/info/exclude\"\n(cd \"$d/r\" && bash \"$hook\")\nmkdir -p \"$d/r/.work\"; touch \"$d/r/.work/x\" \"$d/r/a.log\"\n[ -z \"$(git -C \"$d/r\" status --porcelain)\" ] || { echo \"FAIL: status: $(git -C \"$d/r\" status --porcelain)\"; exit 1; }\n",
+    "P": "nobuild",
+    "R": "fail",
+    "output": "FAIL: status: ?? .work/\n?? a.log"
+  },
+  "expect": "should-fail"
+}

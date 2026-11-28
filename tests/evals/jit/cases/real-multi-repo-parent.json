@@ -1,0 +1,17 @@
+{
+  "kind": "real-bug",
+  "intent": "The session-start hook keeps /.work/ out of git in every repository. Environment: a cloud session with several repositories starts in /home/user, which is not a git repository; the repositories are its children, and the hook input doesn't list them.",
+  "files": {
+    "hooks/session-start.sh": "#!/usr/bin/env bash\nset -euo pipefail\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null)\" || exit 0\necho '/.work/' >> \"$root/.git/info/exclude\"\n"
+  },
+  "test": {
+    "id": "real-multi-repo-parent",
+    "risk": "started in a non-git parent folder holding several repositories, the hook does nothing",
+    "file": "tests/jit/multi-repo-parent.sh",
+    "body": "set -e\nhook=\"$PWD/hooks/session-start.sh\"; d=$(mktemp -d); git init -q \"$d/a\"; git init -q \"$d/b\"\n(cd \"$d\" && bash \"$hook\")\nfor r in a b; do grep -qx '/.work/' \"$d/$r/.git/info/exclude\" || { echo \"FAIL: $r: .work/ not excluded from a parent folder\"; exit 1; }; done\n",
+    "P": "nobuild",
+    "R": "fail",
+    "output": "FAIL: a: .work/ not excluded from a parent folder"
+  },
+  "expect": "should-fail"
+}
