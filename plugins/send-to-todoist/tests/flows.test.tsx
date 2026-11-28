@@ -93,3 +93,17 @@ test('Undo deletes what was just added', async ($, on) => {
   expect(deleted.sort()).toEqual(['t0', 't1'])
   await band.unmount()
 })
+
+test('the action-items band is one flat row: text and buttons side by side, no nested groups', async ($, on) => {
+  stub(on)
+  await turnDone($)
+
+  const band = await $.ui.mount({ plugin: P, surface: 'desktop', component: 'AbovePrompt', props: {} } as any)
+  const root: any = await band.drawn()
+  expect(root.type).toBe('Box')
+  expect(root.props.flexDirection).toBe('row')
+  expect(root.props.alignItems).toBe('center')
+  const kids = (root.children ?? root.props.children ?? []).flat().filter(Boolean)
+  expect(kids.map((k: any) => k.type)).toEqual(['Text', 'Button', 'Button', 'Button'])
+  await band.unmount()
+})

@@ -257,26 +257,32 @@ export const register: Register = on => {
         $.ui.toast('Removed from Todoist')
       })
 
+    // One flat row: the desktop app stacks a fragment's children, so each state
+    // gets its own row Box with the Text and Buttons as direct children.
+    if (working) {
+      return (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Text dimColor>Todoist: {working}…</Text>
+        </Box>
+      )
+    }
+    if (last) {
+      return (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Text dimColor>Added {last.label}</Text>
+          <Button key="undo" label="Undo" onPress={undo} />
+          <Button key="undo-hide" label="×" onPress={() => update($, added, () => null)} />
+        </Box>
+      )
+    }
     return (
-      <Box flexDirection="row" gap={1}>
-        {working && <Text dimColor>Todoist: {working}…</Text>}
-        {!working && last && (
-          <>
-            <Text dimColor>Added {last.label}</Text>
-            <Button key="undo" label="Undo" onPress={undo} />
-            <Button key="undo-hide" label="×" onPress={() => update($, added, () => null)} />
-          </>
-        )}
-        {!working && !last && found.length > 0 && (
-          <>
-            <Text dimColor>
-              {found.length} action item{found.length === 1 ? '' : 's'} in that reply
-            </Text>
-            <Button key="items-add" label="Add all" onPress={() => sendMany($, found)} />
-            <Button key="items-review" label="Review…" onPress={() => openPane($, { kind: 'items' })} />
-            <Button key="items-hide" label="×" onPress={() => update($, items, () => [])} />
-          </>
-        )}
+      <Box flexDirection="row" alignItems="center" gap={1}>
+        <Text dimColor>
+          {found.length} action item{found.length === 1 ? '' : 's'} in that reply
+        </Text>
+        <Button key="items-add" label="Add all" onPress={() => sendMany($, found)} />
+        <Button key="items-review" label="Review…" onPress={() => openPane($, { kind: 'items' })} />
+        <Button key="items-hide" label="×" onPress={() => update($, items, () => [])} />
       </Box>
     )
   })

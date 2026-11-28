@@ -1,6 +1,6 @@
 {
   "name": "send-to-todoist",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Send selected text, or the action items in Claude's replies, to Todoist (labelled Claude), with optional Claude-written plans. Desktop app; needs the claude.ai Todoist connector.",
   "author": {
     "name": "Harry"
