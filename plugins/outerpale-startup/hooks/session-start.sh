@@ -9,6 +9,24 @@ set -euo pipefail
 
 setup="$(cat "$HOME/.claude/claude-setup-dir" 2>/dev/null || true)"
 
+# A cloud VM keeps the claude-setup it was built from for about 7 days, so plugins added since then
+# would be missing. Only cloud/setup.sh writes the status file, so with it the clone is the VM's own
+# copy, never a working clone on Harry's machines, and is safe to reset to main.
+status="$HOME/.claude/claude-setup.status"
+if [ -n "$setup" ] && [ -f "$status" ] && git -C "$setup" fetch -q --depth 1 origin main 2>/dev/null; then
+  old="$(git -C "$setup" rev-parse --short HEAD)"
+  new="$(git -C "$setup" rev-parse --short FETCH_HEAD)"
+  if [ "$old" != "$new" ]; then
+    git -C "$setup" reset -q --hard FETCH_HEAD
+    sed -i "1s/.*/claude-setup $new, updated $(date -u +%Y-%m-%dT%H:%M:%SZ) by outerpale-startup/" "$status"
+    if bash "$setup/install.sh" >/dev/null 2>&1; then
+      printf 'outerpale-startup: claude-setup on this VM was updated %s → %s; plugins and skills it added load from the next session.\n' "$old" "$new"
+    else
+      printf 'outerpale-startup: WARNING claude-setup on this VM was updated %s → %s, but install.sh failed; run bash %s/install.sh to see why.\n' "$old" "$new" "$setup"
+    fi
+  fi
+fi
+
 one_repo() {  # $1 the repository root, $2 how to show its folder ("." or its name), $3 what to call it
   local root="$1" rel="$2" label="$3" exclude name src common
   exclude="$(git -C "$root" rev-parse --git-path info/exclude)"
